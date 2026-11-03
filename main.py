@@ -676,8 +676,7 @@ def log_enterprise_audit_trail(license_no: str, query: str, reference: str, is_s
 @app.get("/health")
 async def health_check():
     return {"status": "online", "system": "AeroSync AI Enterprise v3.0.1 Active"}
+@app.get("/health")
+async def health_check():
+    return {"status": "online", "system": "AeroSync AI Enterprise v3.0.1 Active"}
 
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)

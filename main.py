@@ -1,5 +1,5 @@
 """
-AeroSync AI  - Regulatory-Compliant Aviation & Manual Processing Hub
+AeroSync AI Enterprise - Regulatory-Compliant Aviation & Manual Processing Hub
 Compliance: EASA Part-145, FAA, SCAA Standards
 Safety Protocols: Zero-Hallucination, Immutable WAL Audit Trail
 """
@@ -13,12 +13,11 @@ from pydantic import BaseModel, Field, validator
 
 app = FastAPI(
     title="AeroSync AI Enterprise - SCAA & EASA Compliant Hub",
-    version="3.0.1",
     description="Production-grade aviation diagnostic, manual ingestion, and training platform."
 )
 
 AUDIT_DB_FILE = "aerosync_enterprise_audit.db"
-CURRENT_MANUAL_REVISION = "REV-2026-06"
+CURRENT_MANUAL_REVISION = "REV-Current"
 
 @app.on_event("startup")
 async def startup_event_enterprise():
@@ -78,7 +77,7 @@ class EnterpriseDiagnosticRequest(BaseModel):
     fault_code: str = Field(..., example="79-20-00")
     spoken_query: str = Field(..., min_length=3, max_length=200)
     engineer_license_no: str = Field(..., example="SCAA-LIC-2041")
-    client_manual_revision: str = Field(..., example="REV-2026-06")
+    client_manual_revision: str = Field(..., example="REV-Current")
     is_simulation_mode: bool = Field(default=False)
     lang: str = Field(default="en")
 
@@ -97,7 +96,7 @@ def read_root():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AeroSync AI v3.0.1 - Enterprise Aviation Compliance & Manual Hub</title>
+        <title>AeroSync AI - Enterprise Aviation Compliance & Manual Hub</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -337,7 +336,7 @@ def read_root():
     <body>
         <div class="app-container">
             <div class="header">
-                <div class="brand-title">✈️ AeroSync <span>AI v3.0</span></div>
+                <div class="brand-title">✈️ AeroSync <span>AI</span></div>
                 <div class="brand-subtitle">Enterprise Compliance, Diagnostics & Manual Hub</div>
             </div>
 
@@ -358,7 +357,7 @@ def read_root():
                         </div>
                         <div class="form-group">
                             <label for="client_manual_revision">Manual Revision:</label>
-                            <input type="text" id="client_manual_revision" value="REV-2026-06" required>
+                            <input type="text" id="client_manual_revision" value="REV-Current" required>
                         </div>
                         <div class="form-group">
                             <label for="engine_model">Engine / Model:</label>
@@ -546,7 +545,7 @@ def read_root():
             function exportReport() {
                 if (!lastDiagnosticData) return;
                 const reportContent = `========================================\\n` +
-                                      `  AEROSYNC AI v3.0.1 - IMMUTABLE AUDIT  \\n` +
+                                      `  AEROSYNC AI - IMMUTABLE AUDIT  \\n` +
                                       `========================================\\n` +
                                       `Timestamp: ${new Date().toISOString()}\\n` +
                                       `Operation Mode: ${lastDiagnosticData.operational_mode}\\n` +
@@ -675,8 +674,9 @@ def log_enterprise_audit_trail(license_no: str, query: str, reference: str, is_s
 
 @app.get("/health")
 async def health_check():
-    return {"status": "online", "system": "AeroSync AI Enterprise v3.0.1 Active"}
-@app.get("/health")
-async def health_check():
-    return {"status": "online", "system": "AeroSync AI Enterprise v3.0.1 Active"}
+    return {"status": "online", "system": "AeroSync AI Active"}
 
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

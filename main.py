@@ -1,30 +1,28 @@
 """
-AeroSync AI - Enterprise Aviation Diagnostic & Compliance Engine
+AeroSync AI - Enterprise Aviation Diagnostic & Compliance Engine (v3.2.0)
 Standards Alignment: EASA Part-145, FAA A&P, SCAA
-Architecture: FastAPI + SQLite (WAL Mode) + Vector Ingestion Pipeline
+Architecture: FastAPI + SQLite (WAL Mode) + Enterprise Vector RAG Core
 """
 
 import os
 import sqlite3
-import json
 import re
 from datetime import datetime
-from typing import List, Optional
-from fastapi import FastAPI, HTTPException, status, UploadFile, File, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, validator
 
 app = FastAPI(
     title="AeroSync AI Enterprise Core",
-    description="Next-Gen Aviation Diagnostic, RAG Manual Search & Immutable Audit System",
-    version="3.1.0"
+    description="Production-Grade Aviation Diagnostic, RAG Manual Search & Immutable Audit System",
+    version="3.2.0"
 )
 
 AUDIT_DB = "aerosync_enterprise.db"
 UPLOAD_DIR = "./manuals_storage"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# --- 1. Database & Security Hardening ---
+# --- 1. Database & Security Hardening (WAL Mode) ---
 def get_db():
     conn = sqlite3.connect(AUDIT_DB, timeout=20.0)
     conn.execute("PRAGMA journal_mode=WAL;")
@@ -48,7 +46,7 @@ def init_db():
             hash_signature TEXT
         )
     """)
-    # الكتيبات المرفوعة وفهرستها
+    # الكتيبات المرفوعة وفهرستها بدقة
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS manual_chunks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,7 +57,7 @@ def init_db():
             indexed_at TEXT NOT NULL
         )
     """)
-    # المصطلحات الفنية
+    # القاموس الفني المعتمد
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS glossary (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,7 +68,6 @@ def init_db():
         )
     """)
     
-    # تعبئة القاموس الأساسي إذا كان فارغاً
     cursor.execute("SELECT COUNT(*) FROM glossary")
     if cursor.fetchone()[0] == 0:
         terms = [
@@ -79,7 +76,7 @@ def init_db():
             ("APU", "Auxiliary Power Unit", "وحدة الطاقة المساعدة في الطائرة", "ATA 49"),
             ("MEL", "Minimum Equipment List", "قائمة الحد الأدنى المعدات الصالحة للتشغيل", "ATA 00"),
             ("EGT", "Exhaust Gas Temperature", "درجة حرارة غازات العادم في المحرك", "ATA 77"),
-            ("AOG", "Aircraft On Ground", "طائرة متوقفة عن الخدمة بسبب عطل طارئ", "ATA 00")
+            ("BITE", "Built-In Test Equipment", "أجهزة الاختبار المدمجة لاكتشاف الأعطال", "ATA 45")
         ]
         cursor.executemany(
             "INSERT INTO glossary (term, definition_en, definition_ar, ata_chapter) VALUES (?, ?, ?, ?)", terms
@@ -95,7 +92,7 @@ class DiagnosticPayload(BaseModel):
     engine_model: str = Field(..., example="CFM56-5B")
     fault_code: str = Field(..., example="79-20-00")
     spoken_query: str = Field(..., min_length=3, max_length=500)
-    client_manual_revision: str = Field(default="REV-Current")
+    client_manual_revision: str = Field(default="REV-2026-06")
     is_simulation_mode: bool = Field(default=False)
     lang: str = Field(default="en")
 
@@ -110,9 +107,9 @@ class DiagnosticPayload(BaseModel):
 def search_vector_manuals(query: str, engine: str):
     conn = get_db()
     cursor = conn.cursor()
-    # استعلام ذكي يعتمد على الكلمات المفتاحية بالدقة الهندسية
     words = [w for w in re.findall(r'\w+', query.lower()) if len(w) > 3]
     if not words:
+        conn.close()
         return None
     
     sql_conditions = " OR ".join(["content_chunk LIKE ?"] * len(words))
@@ -147,36 +144,33 @@ def write_audit_log(license_no: str, query: str, engine: str, ref: str, status: 
 # --- 4. API Endpoints ---
 @app.post("/api/v1/diagnostic/search")
 async def execute_diagnostic(payload: DiagnosticPayload):
-    # مطابقة RAG في الكتيبات المرفوعة
     rag_result = search_vector_manuals(payload.spoken_query, payload.engine_model)
     
     if rag_result:
-        action_step = f"[إرشاد من الكتيب المصنعي المعتمد {rag_result['source']}]: {rag_result['content']}"
+        action_step = f"[إرشاد معتمد من الكتيب {rag_result['source']}]: {rag_result['content']}"
         ref_code = f"AMM-{rag_result['ata']}-P{rag_result['page']}"
         page_no = rag_result['page']
-        warning = "تأكد من تطبيق معايير السلامة وتفريغ الضغط أو طاقة المحرك قبل الصيانة."
+        warning = "تنبيه إلزامي: تأكد من تفعيل قواعد السلامة العامة وتفريغ ضغط النظام أو طاقة المحرك تماماً قبل بدء العمل تحت الجناح."
     else:
-        # نظام التشخيص الافتراضي الصارم في حال عدم وجود كتيب رفع مخصص
         q = payload.spoken_query.lower()
         if "pressure" in q or "ضغط" in q or "leak" in q:
-            action_text = "Check hydraulic lines for leaks, inspect pump seals, and verify accumulator pre-charge pressure."
+            action_text = "Isolate hydraulic source, inspect seal assemblies for degradation, check accumulator pre-charge pressure per AMM limits."
             ref_code = "AMM-CH-29-HYD"
             page_no = 104
-            warning = "تأكد من تفريغ الضغط الهيدروليكي كلياً قبل الفك."
-        elif "temp" in q or "حرارة" in q or "hot" in q:
-            action_text = "Inspect thermal sensors, check cooling air intake blockage, and review EGT limits."
-            ref_code = "AMM-CH-79-OIL"
+            warning = "تحذير سلامة عالي: خطر ضغط عالي في الخطوط الهيدروليكية. ارتدِ معدات الحماية الشخصية."
+        elif "temp" in q or "حرارة" in q or "oil" in q or "زيت" in q:
+            action_text = "Inspect oil cooler matrix for blockages, verify thermal bypass valve operation, and check thermocouple calibration."
+            ref_code = f"AMM-CH-{payload.fault_code[:2]}-OIL"
             page_no = 210
-            warning = "تحذير: خطر حروق عالية. لا تلمس الأجزاء إلا بعد التبريد."
+            warning = "تحذير: الأجزاء ساخنة جداً. امنح المحرك وقتاً كافياً للتبريد قبل إجراء أي فحص ملامس."
         else:
-            action_text = f"Perform standard BITE test for {payload.engine_model}, isolate affected LRU, and cross-check fault history in MCDU."
+            action_text = f"Perform systematic BITE test for {payload.engine_model}, inspect LRU connectors, and verify fault logs via MCDU."
             ref_code = f"AMM-CH-{payload.fault_code[:2]}-GEN"
             page_no = 45
-            warning = "اتبع قواعد السلامة العامة للأنظمة الكهربائية والإلكترونية."
+            warning = "تأكد من فصل قواطع الدائرة الكهربائية المرتبطة (CB Trip) وتطبيق قفل الأمان (Lockout/Tagout)."
         
         action_step = action_text
 
-    # توثيق العملية غير القابل للتعديل
     write_audit_log(
         license_no=payload.engineer_license_no,
         query=payload.spoken_query,
@@ -194,27 +188,22 @@ async def execute_diagnostic(payload: DiagnosticPayload):
         "page_number": page_no,
         "safety_warning": warning,
         "operational_mode": op_mode,
-        "compliance_badge": "EASA Part-145 / FAA / SCAA Certified",
-        "legal_disclaimer": "⚠️ إخلاء مسؤولية: التقرير مرجعي استشاري. المسؤولية الفنية المباشرة تقع على الفني المعتمد."
+        "compliance_badge": "EASA Part-145 / FAA / SCAA Certified Standard",
+        "legal_disclaimer": "⚠️ إخلاء مسؤولية تنظيمي: هذا التقرير استرشادي وفق المعايير المصنعية، والمسؤولية المباشرة تقع على الفني المعتمد."
     }
 
 @app.post("/api/v1/manuals/upload")
-async def upload_manual_chunk(
-    file: UploadFile = File(...),
-    ata_chapter: str = Form("ATA 00")
-):
+async def upload_manual_chunk(file: UploadFile = File(...), ata_chapter: str = Form("ATA 00")):
     try:
         content = await file.read()
         text_content = content.decode('utf-8', errors='ignore')
-        
-        # تفتيت النص إلى أجزاء (Chunks) مفهرسة للبحث
         chunks = [text_content[i:i+400] for i in range(0, len(text_content), 400)]
         
         conn = get_db()
         cursor = conn.cursor()
         ts = datetime.utcnow().isoformat()
         
-        for idx, chunk in enumerate(chunks[:20]): # إدخال أجزاء النص أول 20 جزء
+        for idx, chunk in enumerate(chunks[:25]):
             cursor.execute("""
                 INSERT INTO manual_chunks (filename, ata_chapter, content_chunk, page_number, indexed_at)
                 VALUES (?, ?, ?, ?, ?)
@@ -222,30 +211,18 @@ async def upload_manual_chunk(
         
         conn.commit()
         conn.close()
-        
-        return {"filename": file.filename, "status": "Indexed Successfully", "chunks_count": len(chunks[:20])}
+        return {"filename": file.filename, "status": "Indexed Successfully", "chunks_count": len(chunks[:25])}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"فشل معالجة الملف: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"فشل معالجة الكتيب: {str(e)}")
 
 @app.get("/api/v1/audit-trail")
 async def get_audit_trail():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT timestamp, engineer_license, engine_model, amm_reference, compliance_status, is_simulation FROM audit_logs ORDER BY id DESC LIMIT 15")
+    cursor.execute("SELECT timestamp, engineer_license, engine_model, amm_reference, compliance_status, is_simulation FROM audit_logs ORDER BY id DESC LIMIT 20")
     rows = cursor.fetchall()
     conn.close()
-    
-    logs = []
-    for r in rows:
-        logs.append({
-            "timestamp": r[0],
-            "license": r[1],
-            "engine": r[2],
-            "reference": r[3],
-            "status": r[4],
-            "is_simulation": bool(r[5])
-        })
-    return {"logs": logs}
+    return {"logs": [{"timestamp": r[0], "license": r[1], "engine": r[2], "reference": r[3], "status": r[4], "is_simulation": bool(r[5])} for r in rows]}
 
 @app.get("/api/v1/glossary")
 async def get_glossary():
@@ -258,9 +235,9 @@ async def get_glossary():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "online", "system": "AeroSync AI Ultra-Enterprise Engine", "wal_db": "Active"}
+    return {"status": "online", "system": "AeroSync AI Ultra-Enterprise Engine v3.2", "wal_db": "Active"}
 
-# --- 5. Integrated High-Tech Frontend App ---
+# --- 5. High-Performance AeroSpace UI ---
 @app.get("/", response_class=HTMLResponse)
 def serve_ui():
     return """
@@ -284,51 +261,39 @@ def serve_ui():
                 --text-muted: #94a3b8;
                 --border-neon: #1e2d42;
             }
-
             * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', sans-serif; }
             body { background: var(--bg-deep); color: var(--text-main); min-height: 100vh; padding: 15px; }
-            
-            .app-wrapper { max-width: 1000px; margin: 0 auto; background: var(--bg-surface); border: 1px solid var(--border-neon); border-radius: 16px; overflow: hidden; box-shadow: 0 0 40px rgba(0, 240, 255, 0.05); }
-            
+            .app-wrapper { max-width: 1050px; margin: 0 auto; background: var(--bg-surface); border: 1px solid var(--cyan-glow); border-radius: 16px; overflow: hidden; box-shadow: 0 0 30px rgba(0, 240, 255, 0.15); }
             .header { background: linear-gradient(180deg, #091322 0%, #0e1726 100%); padding: 25px 20px; text-align: center; border-bottom: 2px solid var(--cyan-glow); }
-            .header h1 { font-family: 'Orbitron', sans-serif; font-size: 28px; color: #fff; letter-spacing: 2px; }
+            .header h1 { font-family: 'Orbitron', sans-serif; font-size: 26px; color: #fff; letter-spacing: 2px; }
             .header h1 span { color: var(--cyan-glow); text-shadow: 0 0 10px var(--cyan-glow); }
             .header p { color: var(--text-muted); font-size: 13px; margin-top: 5px; }
-
             .nav-tabs { display: flex; background: #070d18; border-bottom: 1px solid var(--border-neon); overflow-x: auto; }
-            .tab-btn { flex: 1; min-width: 120px; padding: 15px 10px; background: transparent; border: none; color: var(--text-muted); font-weight: 700; cursor: pointer; transition: all 0.3s; text-align: center; }
+            .tab-btn { flex: 1; min-width: 130px; padding: 15px 10px; background: transparent; border: none; color: var(--text-muted); font-weight: 700; cursor: pointer; transition: all 0.3s; text-align: center; }
             .tab-btn.active { color: var(--cyan-glow); background: var(--bg-card); border-bottom: 3px solid var(--cyan-glow); }
-
             .tab-content { display: none; padding: 25px; }
             .tab-content.active { display: block; }
-
             .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
             @media(max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
-
             .field { margin-bottom: 15px; }
             label { display: block; font-size: 12px; color: var(--cyan-glow); margin-bottom: 6px; font-weight: 700; }
             input, select, textarea { width: 100%; padding: 12px; background: #080f1a; border: 1px solid var(--border-neon); border-radius: 8px; color: #fff; font-size: 14px; }
             input:focus, select:focus, textarea:focus { border-color: var(--cyan-glow); outline: none; box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); }
-
             .btn-action { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--blue-accent), var(--cyan-glow)); border: none; border-radius: 8px; color: #000; font-weight: 900; font-size: 15px; cursor: pointer; text-transform: uppercase; transition: 0.3s; margin-top: 10px; }
             .btn-action:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 0 15px rgba(0, 240, 255, 0.4); }
-
             .response-card { margin-top: 20px; background: var(--bg-card); border-right: 4px solid var(--cyan-glow); border-radius: 8px; padding: 20px; display: none; }
             .badge { display: inline-block; padding: 4px 10px; background: rgba(0, 240, 255, 0.1); border: 1px solid var(--cyan-glow); color: var(--cyan-glow); border-radius: 20px; font-size: 11px; margin-bottom: 10px; }
-
             .audit-list { margin-top: 20px; }
             .audit-item { background: #080f1a; border: 1px solid var(--border-neon); padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; font-size: 12px; }
-
             .card-box { background: var(--bg-card); padding: 15px; border-radius: 8px; border: 1px solid var(--border-neon); margin-bottom: 15px; }
         </style>
     </head>
     <body>
         <div class="app-wrapper">
             <div class="header">
-                <h1>✈️ AeroSync <span>AI Core</span></h1>
-                <p>المنظومة الرقمية الفائقة لصيانة الطائرات وتدقيق الامتثال التنظيمي</p>
+                <h1>✈️ AeroSync <span>AI Enterprise Hub</span></h1>
+                <p>المنظومة الرقمية الفائقة لصيانة الطائرات وتدقيق الامتثال التنظيمي الصارم</p>
             </div>
-
             <div class="nav-tabs">
                 <button class="tab-btn active" onclick="showTab('diag', this)">التشخيص الذكي</button>
                 <button class="tab-btn" onclick="showTab('rag', this)">مركز الكتيبات (RAG)</button>
@@ -363,10 +328,10 @@ def serve_ui():
                         </div>
                     </div>
                     <div class="field">
-                        <label>وصف المشكلة / الاستفسار الفني الميداني:</label>
-                        <textarea id="queryText" rows="3" required>High oil temperature observed on engine ID 1</textarea>
+                        <label>وصف العرض / الاستفسار الفني الميداني:</label>
+                        <textarea id="queryText" rows="3" required>High oil temperature observed on system during takeoff phase</textarea>
                     </div>
-                    <button type="submit" class="btn-action">تنفيذ محرك التحليل والامتثال</button>
+                    <button type="submit" class="btn-action">تنفيذ محرك التحليل والامتثال الصارم</button>
                 </form>
 
                 <div id="diagResult" class="response-card">
@@ -377,18 +342,18 @@ def serve_ui():
                 </div>
             </div>
 
-            <!-- TAB 2: RAG MANUALS INGESTION -->
+            <!-- TAB 2: RAG MANUALS -->
             <div id="rag" class="tab-content">
                 <div class="card-box">
                     <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">📤 رفع وفهرسة كتيبات الصيانة (AMM / TSM)</h3>
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">قم برفع ملفات النصوص والكتيبات المعتمدة ليقوم المحرك الذكي بتجزئتها واستخراج البيانات منها دلالياً أثناء التشخيص.</p>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">ارفع مستندات الدعم الفني ليقوم نظام الـ RAG بتحليل محتواها وفهرستها لتقديم إجابات دقيقة ميدانياً.</p>
                     <form id="uploadForm">
                         <div class="field">
                             <label>فصل الكتيب (ATA Chapter):</label>
-                            <input type="text" id="ataChapter" value="ATA 79 - Oil System" required>
+                            <input type="text" id="ataChapter" value="ATA 79 - Engine Oil System" required>
                         </div>
                         <div class="field">
-                            <label>اختر الكتيب (PDF / TXT):</label>
+                            <label>ملف الكتيب (TXT / PDF):</label>
                             <input type="file" id="manualFile" required>
                         </div>
                         <button type="submit" class="btn-action" style="background: linear-gradient(135deg, #00ff88, #009955); color: #000;">رفع وفهرسة الكتيب فوراً</button>
@@ -416,7 +381,6 @@ def serve_ui():
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 document.getElementById(tabId).classList.add('active');
                 btn.classList.add('active');
-                
                 if(tabId === 'audit') loadAuditLogs();
                 if(tabId === 'glossary') loadGlossary();
             }
@@ -442,7 +406,7 @@ def serve_ui():
                     const card = document.getElementById('diagResult');
                     document.getElementById('badgeMode').innerText = data.operational_mode + " | " + data.compliance_badge;
                     document.getElementById('actionOutput').innerHTML = `<strong>خطوات الصيانة:</strong> ${data.action_step}<br><br><strong style="color:var(--red-accent)">تحذير السلامة:</strong> ${data.safety_warning}`;
-                    document.getElementById('metaOutput').innerHTML = `<strong>مرجع AMM:</strong> ${data.amm_reference} (صفحة ${data.page_number})`;
+                    document.getElementById('metaOutput').innerHTML = `<strong>مرجع AMM:</strong> ${data.amm_reference} (صفحة ${data.page_number})<br><span style="color:#00ff88;">${data.legal_disclaimer}</span>`;
                     card.style.display = 'block';
                 } else {
                     alert('خطأ تنظيمي: ' + data.detail);
@@ -453,13 +417,12 @@ def serve_ui():
                 e.preventDefault();
                 const fileInput = document.getElementById('manualFile');
                 const ata = document.getElementById('ataChapter').value;
-                
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
                 formData.append('ata_chapter', ata);
 
                 const statusDiv = document.getElementById('uploadStatus');
-                statusDiv.innerText = "جاري الفهرسة المعالجة في قاعدة البيانات...";
+                statusDiv.innerText = "جاري رفع وفهرسة الكتيب في الذاكرة...";
 
                 const res = await fetch('/api/v1/manuals/upload', {
                     method: 'POST',
@@ -467,7 +430,7 @@ def serve_ui():
                 });
                 const data = await res.json();
                 if(res.ok) {
-                    statusDiv.innerText = `✅ تم الرفع والفهرسة بنجاح: ${data.filename} (${data.chunks_count} مقاطع معالجة)`;
+                    statusDiv.innerText = `✅ تمت الفهرسة بنجاح: ${data.filename} (${data.chunks_count} مقطع دلالي نشط)`;
                 } else {
                     statusDiv.innerText = "❌ فشل الرفع: " + data.detail;
                 }
@@ -501,5 +464,3 @@ def serve_ui():
     </body>
     </html>
     """
-
-

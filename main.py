@@ -1,7 +1,7 @@
 """
-AeroSync AI - Mission-Critical Enterprise Aviation Suite (v7.7.0 Ultimate Advanced Suite)
+AeroSync AI - Mission-Critical Enterprise Aviation Suite (v8.0.0 Clean English Enterprise Edition)
 Standards Alignment: EASA Part-145, Part-66, FAA A&P, SCAA Compliance
-Architecture: FastAPI + SQLite (WAL Mode) + AR View + FOD Tracker + PHM Engine + Timed Assessor + Offline PWA + Digital CRS
+Architecture: FastAPI + SQLite (WAL Mode) + Clean English Default UI + Sleek In-App Notification Banners + FOD, AR, PHM, CRS
 """
 
 import os
@@ -15,8 +15,8 @@ from pydantic import BaseModel, Field, validator
 
 app = FastAPI(
     title="AeroSync AI Enterprise Ultimate Suite",
-    description="Mission-Critical Aviation Ecosystem with FOD, AR, PHM, Timed Scenarios, Offline Sync & Digital Task Cards",
-    version="7.7.0"
+    description="Mission-Critical Aviation Ecosystem with Clean English Layout & In-App Alert Banners",
+    version="8.0.0"
 )
 
 AUDIT_DB = "aerosync_ultimate.db"
@@ -132,22 +132,22 @@ def init_db():
     cursor.execute("SELECT COUNT(*) FROM competence_passports")
     if cursor.fetchone()[0] == 0:
         cursor.execute("INSERT INTO competence_passports (engineer_license, engineer_name, qualification_level, type_ratings, issued_date) VALUES (?, ?, ?, ?, ?)",
-                       ("SCAA-LIC-2041", "المهندس المعتمد الأول", "EASA Part-66 B1/B2 Certified", "CFM56-5B, CFM56-7B, A320 Family", "2026-01-15"))
+                       ("SCAA-LIC-2041", "Senior Certified Engineer", "EASA Part-66 B1/B2 Certified", "CFM56-5B, CFM56-7B, A320 Family", "2026-01-15"))
 
     cursor.execute("SELECT COUNT(*) FROM exam_questions")
     if cursor.fetchone()[0] == 0:
         questions = [
-            ("Module 03 - Electrical Fundamentals (أساسيات الكهرباء)", 
+            ("Module 03 - Electrical Fundamentals", 
              "What is the primary unit of electrical capacitance?", 
              "ما هي وحدة قياس السعة الكهربائية الأساسية؟", 
-             "Volt (فولت)", "Farad (فاراد)", "Ohm (أوم)", "B", 
+             "Volt", "Farad", "Ohm", "B", 
              "Farad is the SI unit of electrical capacitance, representing charge per unit potential difference."),
-            ("Module 15 - Gas Turbine Engine (محركات التوربينات الغازية)", 
+            ("Module 15 - Gas Turbine Engine", 
              "In which section of a gas turbine engine is the highest pressure reached?", 
              "في أي قسم من توربينات الغاز يتم الوصول إلى أعلى ضغط؟", 
-             "Compressor Exit / Diffuser (مخرج ضاغط الهواء / الناشر)", "Turbine Inlet (مدخل التوربين)", "Exhaust Nozzle (فوهة العادم)", "A", 
-             "The compressor exit and diffuser section handles the compressed air right before the combustion chamber, yielding peak cycle pressure."),
-            ("Module 10 - Aviation Legislation (تشريعات الطيران)", 
+             "Compressor Exit / Diffuser", "Turbine Inlet", "Exhaust Nozzle", "A", 
+             "The compressor exit and diffuser section handles compressed air right before combustion, yielding peak cycle pressure."),
+            ("Module 10 - Aviation Legislation", 
              "Which organization is responsible for issuing EASA Part-145 maintenance organization approvals?", 
              "ما هي الجهة المسؤولة عن إصدار اعتمادات منظمات الصيانة EASA Part-145؟", 
              "FAA", "ICAO", "EASA", "C", 
@@ -174,7 +174,7 @@ class DiagnosticPayload(BaseModel):
     @validator('engineer_license_no')
     def validate_license(cls, v):
         if not any(v.startswith(p) for p in ("EASA-", "FAA-", "SCAA-")):
-            raise ValueError("رخصة الفني غير صالحة: يجب أن تبدأ بـ EASA-, FAA-, أو SCAA-")
+            raise ValueError("Invalid Engineer License: Must start with EASA-, FAA-, or SCAA-")
         return v
 
 # --- 3. Core Logic & Advanced Features ---
@@ -214,7 +214,7 @@ async def execute_diagnostic(payload: DiagnosticPayload):
         conn.close()
         raise HTTPException(
             status_code=403, 
-            detail="⚠️ رفض تشغيلي أمني صارم: لا يمكن إعطاء أي معلومات أو إجراء تشخيص لعدم توفر كتيب صيانة (AMM) مرفق ومعتمد في النظام. يرجى رفع الكتيب في تبويب (1. الكتيبات) أولاً."
+            detail="Strict Operational Security Refusal: Diagnostics and tool lookup are restricted until an approved AMM manual is uploaded and indexed."
         )
 
     cursor.execute("SELECT mel_category, dispatch_allowed, repair_interval, spare_part_no, stock_qty FROM mel_inventory WHERE fault_code = ?", (payload.fault_code,))
@@ -230,44 +230,44 @@ async def execute_diagnostic(payload: DiagnosticPayload):
     }
 
     q = payload.spoken_query.lower()
-    if "pressure" in q or "ضغط" in q or "leak" in q:
+    if "pressure" in q or "leak" in q:
         action_text = "Isolate hydraulic manifold, inspect O-rings, verify accumulator pre-charge pressure per AMM Chapter 29."
         ref_code = "AMM-CH-29-HYD"
         page_no = 104
-        warning = "تحذير حرج: خطر ضغط عالي. فرّغ الضغط التراكمي كلياً وارتدِ معدات الوقاية."
+        warning = "CRITICAL SAFETY WARNING: High pressure hazard. Bleed down accumulators completely and wear certified PPE."
         digital_twin_zone = "Hydraulic Manifold & Accumulator Core (ATA 29)"
         telemetry_status = "Hydraulic Pressure Variance: +4.2% (Normal Operating Limit)"
         required_tools = [
-            "مفتاح عزم الدوران المعاير (Calibrated Torque Wrench)",
-            "طقم سدادات وحلقات إحكام O-Rings Kit (Part # 29-HYD-SEAL)",
-            "مقياس ضغط هيدروليكي رقمي (Digital Pressure Gauge)",
-            "معدات الحماية الشخصية (PPE: Safety Goggles & Gloves)"
+            "Calibrated Torque Wrench Set",
+            "O-Rings Seal Kit (Part # 29-HYD-SEAL)",
+            "Digital Hydraulic Pressure Gauge",
+            "Certified PPE (Safety Goggles & Chemical Gloves)"
         ]
-    elif "temp" in q or "حرارة" in q or "oil" in q or "زيت" in q:
+    elif "temp" in q or "oil" in q:
         action_text = "Perform thermal matrix inspection on oil cooler core, check bypass valve operational thresholds per AMM Chapter 79."
         ref_code = f"AMM-CH-{payload.fault_code[:2]}-OIL"
         page_no = 210
-        warning = "تنبيه حراري: الأجزاء ساخنة للغاية. امنح المحرك وقتاً كافياً للتبريد."
+        warning = "THERMAL ALERT: High component temperature. Allow adequate cooling time prior to maintenance."
         digital_twin_zone = "Oil Cooler & Temperature Sensor Matrix (ATA 79)"
         telemetry_status = "EGT Core Temperature Trend: Elevated (Predictive Wash Recommended in 45 Flight Hours)"
         required_tools = [
-            "جهاز قياس الحرارة بالأشعة تحت الحمراء (Infrared Thermometer)",
-            "مفتاح ربط أنابيب الزيت (Flare Nut Wrench Set)",
-            "صمام تفريغ وفحص الضغط (Oil Drain Valve Tool)",
-            "سوائل تنظيف معتمدة وفق معيار AMS 1525"
+            "Infrared Thermometer Probe",
+            "Flare Nut Wrench Set",
+            "Oil Drain Valve Tool",
+            "AMS 1525 Certified Cleaning Solvent"
         ]
     else:
         action_text = f"Execute complete BITE diagnostics for {payload.engine_model}, inspect LRU electrical harness."
         ref_code = f"AMM-CH-{payload.fault_code[:2]}-GEN"
         page_no = 45
-        warning = "إجراء أمان: افصل قواطع الدائرة الكهربائية (CB Trip) وأمن منطقة العمل."
+        warning = "SAFETY ACTION: Trip circuit breakers (CB) and secure workspace before handling electronic units."
         digital_twin_zone = "FADEC Electronic Controller & Harness (ATA 73)"
         telemetry_status = "Vibration Log: Stable (0.4 IPS Peak Amplitude)"
         required_tools = [
-            "جهاز فحص أعطال المحرك المحمول (MCDU / Portable BITE Tester)",
-            "سوار تفريغ الشحنات الاستاتيكية (ESD Grounding Wrist Strap)",
-            "مفتاح فحص التوصيلات الكهربائية (Multimeter Digital RMS)",
-            "مخطط أسلاك الأسلاك المعتمد (Wiring Diagram Manual - WDM)"
+            "Portable MCDU / BITE Tester",
+            "ESD Grounding Wrist Strap",
+            "Digital Multimeter RMS",
+            "Wiring Diagram Manual (WDM Reference)"
         ]
 
     block_hash = write_blockchain_audit(
@@ -289,8 +289,8 @@ async def execute_diagnostic(payload: DiagnosticPayload):
         "required_tools": required_tools,
         "mel_compliance": mel_info,
         "blockchain_hash": block_hash,
-        "compliance_badge": "EASA Part-145 / SCAA Certified Standard (Advanced PHM & AR Ready)",
-        "legal_disclaimer": "⚠️ إخلاء مسؤولية مؤسسي: التقرير مطبق بمعيار مطابقة الكتيب 100%."
+        "compliance_badge": "EASA Part-145 / SCAA Certified Standard",
+        "legal_disclaimer": "Institutional Disclaimer: 100% manual-matched compliance with cryptographic audit trail."
     }
 
 @app.post("/api/v1/manuals/upload")
@@ -314,7 +314,7 @@ async def upload_manual_chunk(file: UploadFile = File(...), ata_chapter: str = F
         conn.close()
         return {"filename": file.filename, "status": "Indexed Successfully", "chunks_count": len(chunks[:25])}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"فشل معالجة المستند: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Document processing failed: {str(e)}")
 
 @app.get("/api/v1/manuals/search")
 async def search_manuals(q: str = Query(..., min_length=2)):
@@ -330,7 +330,7 @@ async def search_manuals(q: str = Query(..., min_length=2)):
     conn.close()
     
     if not rows:
-        return {"results": [], "message": "لم يتم العثور على مطابقات داخل الكتيبات المرفوعة."}
+        return {"results": [], "message": "No matching entries found in uploaded manuals."}
     
     return {
         "results": [
@@ -354,13 +354,13 @@ async def get_exam_questions():
         conn.close()
         raise HTTPException(
             status_code=403,
-            detail="⚠️ حظر تدريبي أمني: لا يمكن الوصول لبنك الأسئلة قبل رفع كتيب الصيانة المعتمد."
+            detail="Training Security Lock: Access to exam questions and training modules is locked until an approved AMM manual is uploaded."
         )
 
     cursor.execute("SELECT id, module_no, question_en, question_ar, option_a, option_b, option_c, correct_option, explanation FROM exam_questions")
     rows = cursor.fetchall()
     conn.close()
-    return [{"id": r[0], "module": r[1], "q_en": r[2], "q_ar": r[3], "opt_a": r[4], "opt_b": r[5], "opt_c": r[6], "correct": r[7], "explanation": r[8]} for r in rows]
+    return [{"id": r[0], "module": r[1], "q_en": r[2], "q_ar": r[3], "option_a": r[4], "option_b": r[5], "option_c": r[6], "correct": r[7], "explanation": r[8]} for r in rows]
 
 @app.get("/api/v1/passport/{license_no}")
 async def get_passport(license_no: str):
@@ -371,7 +371,7 @@ async def get_passport(license_no: str):
     conn.close()
     if row:
         return {"license": license_no, "name": row[0], "level": row[1], "ratings": row[2], "issued": row[3], "status": "Active & Valid"}
-    raise HTTPException(status_code=404, detail="جواز الكفاءة غير موجود أو لم يتم اعتماده تنظيمياً.")
+    raise HTTPException(status_code=404, detail="Competence passport not found or unverified.")
 
 @app.get("/api/v1/audit-trail")
 async def get_audit_trail():
@@ -403,21 +403,21 @@ async def manifest():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "online", "system": "AeroSync AI Ultimate Suite v7.7 Advanced", "blockchain_ledger": "Secure & Active"}
+    return {"status": "online", "system": "AeroSync AI Ultimate Suite v8.0 Clean English", "blockchain_ledger": "Secure & Active"}
 
-# --- 5. High-Performance AeroSpace HUD & Multi-Language UI (v7.7.0) ---
+# --- 5. High-Performance Clean English AeroSpace HUD UI ---
 @app.get("/", response_class=HTMLResponse)
 def serve_ui():
     return """
     <!DOCTYPE html>
-    <html lang="ar" dir="rtl" id="htmlTag">
+    <html lang="en" dir="ltr" id="htmlTag">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AeroSync AI - Ultimate Advanced Aviation Suite</title>
+        <title>AeroSync AI - Ultimate Aviation Suite</title>
         <link rel="manifest" href="/manifest.json">
         <meta name="theme-color" content="#00f0ff">
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
             :root {
                 --bg-deep: #020617;
@@ -431,9 +431,21 @@ def serve_ui():
                 --text-muted: #94a3b8;
                 --border-neon: #1e3a8a;
             }
-            * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', sans-serif; }
+            * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
             body { background: var(--bg-deep); color: var(--text-main); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 15px; }
             
+            /* In-App Notification Banner */
+            #appNotification {
+                position: fixed; top: 20px; right: 20px; z-index: 100000;
+                background: rgba(16, 28, 56, 0.95); border: 2px solid var(--cyan-glow);
+                color: #fff; padding: 15px 25px; border-radius: 12px; box-shadow: 0 0 30px rgba(0,240,255,0.3);
+                display: none; max-width: 400px; font-size: 13px; backdrop-filter: blur(10px);
+                animation: slideIn 0.3s ease;
+            }
+            #appNotification.error { border-color: var(--red-accent); box-shadow: 0 0 30px rgba(255,42,95,0.3); }
+            #appNotification.success { border-color: var(--green-accent); box-shadow: 0 0 30px rgba(0,255,136,0.3); }
+            @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
             #landingGate {
                 position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                 background: radial-gradient(circle at center, #0a1931 0%, #020617 100%);
@@ -456,7 +468,7 @@ def serve_ui():
             .header p { color: var(--text-muted); font-size: 12px; margin-top: 5px; }
             
             .lang-switch {
-                position: absolute; top: 20px; left: 20px; z-index: 100;
+                position: absolute; top: 20px; right: 20px; z-index: 100;
                 background: rgba(4, 8, 18, 0.9); border: 1px solid var(--cyan-glow);
                 border-radius: 20px; padding: 4px; display: flex; gap: 4px;
             }
@@ -467,49 +479,51 @@ def serve_ui():
             .lang-btn.active { background: var(--cyan-glow); color: #000; box-shadow: 0 0 10px var(--cyan-glow); }
 
             .nav-tabs { display: flex; background: #040812; border-bottom: 1px solid var(--border-neon); overflow-x: auto; }
-            .tab-btn { flex: 1; min-width: 90px; padding: 12px 6px; background: transparent; border: none; color: var(--text-muted); font-weight: 700; cursor: pointer; transition: all 0.3s; text-align: center; font-size: 10px; }
+            .tab-btn { flex: 1; min-width: 100px; padding: 12px 8px; background: transparent; border: none; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all 0.3s; text-align: center; font-size: 11px; white-space: nowrap; }
             .tab-btn.active { color: var(--cyan-glow); background: var(--bg-card); border-bottom: 3px solid var(--cyan-glow); }
             .tab-content { display: none; padding: 25px; }
             .tab-content.active { display: block; }
             .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
             @media(max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
-            .field { margin-bottom: 15px; }
-            label { display: block; font-size: 12px; color: var(--cyan-glow); margin-bottom: 6px; font-weight: 700; }
+            .field { margin-bottom: 15px; text-align: left; }
+            label { display: block; font-size: 12px; color: var(--cyan-glow); margin-bottom: 6px; font-weight: 600; }
             input, select, textarea { width: 100%; padding: 12px; background: #060c18; border: 1px solid var(--border-neon); border-radius: 8px; color: #fff; font-size: 14px; }
             input:focus, select:focus, textarea:focus { border-color: var(--cyan-glow); outline: none; box-shadow: 0 0 12px rgba(0, 240, 255, 0.25); }
-            .btn-action { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--blue-accent), var(--cyan-glow)); border: none; border-radius: 8px; color: #000; font-weight: 900; font-size: 15px; cursor: pointer; text-transform: uppercase; transition: 0.3s; margin-top: 10px; }
+            .btn-action { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--blue-accent), var(--cyan-glow)); border: none; border-radius: 8px; color: #000; font-weight: 700; font-size: 14px; cursor: pointer; text-transform: uppercase; transition: 0.3s; margin-top: 10px; }
             .btn-action:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 0 20px rgba(0, 240, 255, 0.4); }
-            .response-card { margin-top: 20px; background: var(--bg-card); border-right: 4px solid var(--cyan-glow); border-radius: 8px; padding: 20px; display: none; }
-            .badge { display: inline-block; padding: 4px 10px; background: rgba(0, 240, 255, 0.1); border: 1px solid var(--cyan-glow); color: var(--cyan-glow); border-radius: 20px; font-size: 11px; margin-bottom: 10px; }
-            .audit-list { margin-top: 20px; }
+            .response-card { margin-top: 20px; background: var(--bg-card); border-left: 4px solid var(--cyan-glow); border-radius: 8px; padding: 20px; display: none; text-align: left; }
+            .badge { display: inline-block; padding: 4px 10px; background: rgba(0, 240, 255, 0.1); border: 1px solid var(--cyan-glow); color: var(--cyan-glow); border-radius: 20px; font-size: 11px; margin-bottom: 10px; font-weight: 600; }
+            .audit-list { margin-top: 20px; text-align: left; }
             .audit-item { background: #060c18; border: 1px solid var(--border-neon); padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; font-size: 12px; }
-            .card-box { background: var(--bg-card); padding: 15px; border-radius: 8px; border: 1px solid var(--border-neon); margin-bottom: 15px; }
-            .exam-box { background: #060c18; border: 1px solid var(--border-neon); padding: 20px; border-radius: 10px; margin-bottom: 15px; }
+            .card-box { background: var(--bg-card); padding: 20px; border-radius: 10px; border: 1px solid var(--border-neon); margin-bottom: 15px; text-align: left; }
+            .exam-box { background: #060c18; border: 1px solid var(--border-neon); padding: 20px; border-radius: 10px; margin-bottom: 15px; text-align: left; }
             .twin-box { background: #050b18; border: 2px dashed var(--cyan-glow); padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 15px; }
             
-            /* AR Glasses Mode Overlay Simulator */
             #arOverlay {
                 position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                 background: rgba(2, 6, 23, 0.92); border: 4px solid var(--cyan-glow);
-                z-index: 99999; display: none; padding: 40px; color: var(--cyan-glow); font-family: 'Orbitron', monospace;
+                z-index: 99999; display: none; padding: 40px; color: var(--cyan-glow); font-family: 'Orbitron', monospace; text-align: left;
             }
         </style>
     </head>
     <body>
 
+        <!-- In-App Notification Banner -->
+        <div id="appNotification"></div>
+
         <!-- AR Glasses Simulation Overlay -->
         <div id="arOverlay">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--cyan-glow); padding-bottom: 15px;">
                 <h3>👓 AEROSYNC AR GLASSES HUD (HEADS-UP DISPLAY)</h3>
-                <button class="btn-action" style="width: auto; padding: 8px 20px; background: var(--red-accent); color: #fff;" onclick="toggleARMode(false)">إغلاق وضع AR</button>
+                <button class="btn-action" style="width: auto; padding: 8px 20px; background: var(--red-accent); color: #fff;" onclick="toggleARMode(false)">Close AR Mode</button>
             </div>
             <div style="margin-top: 30px; font-size: 18px; line-height: 1.8;">
-                <p><strong>طراز المحرك:</strong> <span id="arEngine">CFM56-5B</span> | <strong>الحالة:</strong> متصل تحت الجناح</p>
-                <p style="color: var(--green-accent);"><strong>الخطوة الحالية (AMM):</strong> <span id="arStep">فحص ضغط المركم الهيدروليكي وصمامات الأمان</span></p>
-                <p style="color: #fff; margin-top: 15px;"><strong>🛠️ العدّة المطلوبة الآن:</strong> مفتاح عزم معاير + مقياس ضغط رقمي</p>
+                <p><strong>Engine Model:</strong> <span id="arEngine">CFM56-5B</span> | <strong>Status:</strong> Under-Wing Connected</p>
+                <p style="color: var(--green-accent);"><strong>Active AMM Step:</strong> <span id="arStep">Inspect hydraulic accumulator pre-charge pressure and safety seals</span></p>
+                <p style="color: #fff; margin-top: 15px;"><strong>🛠️ Required GSE & Tools:</strong> Calibrated Torque Wrench + Digital Pressure Gauge</p>
                 <div style="margin-top: 40px; border: 1px dashed var(--cyan-glow); padding: 20px; text-align: center;">
-                    <h4 style="color: #ff2a5f;">⚠️ تنبيه سلامة بؤري نشط:</h4>
-                    <p id="arWarning" style="font-size: 14px; color: #fff; margin-top: 5px;">تفريغ ضغط النظام كلياً قبل فك الصامولة التراكمية.</p>
+                    <h4 style="color: #ff2a5f;">⚠️ Active Safety Warning:</h4>
+                    <p id="arWarning" style="font-size: 14px; color: #fff; margin-top: 5px;">Bleed down system pressure completely before loosening accumulator manifold.</p>
                 </div>
             </div>
         </div>
@@ -517,22 +531,22 @@ def serve_ui():
         <!-- Enterprise Landing Gate -->
         <div id="landingGate">
             <div class="lang-switch">
-                <button class="lang-btn active" onclick="switchLanguage('ar')">العربية</button>
-                <button class="lang-btn" onclick="switchLanguage('en')">English</button>
+                <button class="lang-btn active" onclick="switchLanguage('en')">English</button>
+                <button class="lang-btn" onclick="switchLanguage('ar')">العربية</button>
             </div>
             <div class="gate-card">
-                <h2>✈️ AEROSYNC <span>ULTIMATE GATEWAY</span></h2>
-                <p id="gateSub">بوابة الدخول الآمن للمنظومة العظمى المعتمدة (EASA / FAA / SCAA)</p>
+                <h2>✈️ AEROSYNC <span>ENTERPRISE GATEWAY</span></h2>
+                <p id="gateSub">Secure authentication portal for certified aviation systems (EASA / FAA / SCAA)</p>
                 <form id="gateForm">
                     <div class="field">
-                        <label id="lblLic">معرف رخصة المهندس المعتمد:</label>
+                        <label id="lblLic">Authorized Engineer License ID:</label>
                         <input type="text" id="gateLicense" value="SCAA-LIC-2041" required placeholder="EASA- / FAA- / SCAA-">
                     </div>
                     <div class="field">
-                        <label id="lblFleet">رمز اعتماد الأسطول التشغيلي:</label>
+                        <label id="lblFleet">Fleet Authorization Code:</label>
                         <input type="text" id="gateFleet" value="FLEET-CFM56-GLOBAL" required>
                     </div>
-                    <button type="submit" class="btn-action" id="gateBtn">مصادقة وفتح قمرة القيادة الرقمية</button>
+                    <button type="submit" class="btn-action" id="gateBtn">Authenticate & Access Digital Cockpit</button>
                 </form>
             </div>
         </div>
@@ -540,42 +554,42 @@ def serve_ui():
         <!-- Main AeroSync Suite HUD Dashboard -->
         <div class="app-wrapper" id="mainApp">
             <div class="lang-switch">
-                <button class="lang-btn active" onclick="switchLanguage('ar')">العربية</button>
-                <button class="lang-btn" onclick="switchLanguage('en')">English</button>
+                <button class="lang-btn active" onclick="switchLanguage('en')">English</button>
+                <button class="lang-btn" onclick="switchLanguage('ar')">العربية</button>
             </div>
 
             <div class="header">
-                <h1>✈️ AeroSync <span>Enterprise Ultimate Suite (v7.7.0)</span></h1>
-                <p id="headSub">شامل: كفايات الكتيبات، بحث ذكي، تتبع أدوات FOD، نظارات AR، صيانة تنبؤية PHM، وبطاقات مهام CRS</p>
+                <h1>✈️ AeroSync <span>Enterprise Suite (v8.0.0)</span></h1>
+                <p id="headSub">Mission-Critical Maintenance Ecosystem: AMM Manuals, Semantic Search, FOD Tracker, AR HUD, PHM, & Digital CRS</p>
             </div>
             <div class="nav-tabs">
-                <button class="tab-btn active" onclick="showTab('rag', this)" id="tab1">1. الكتيبات</button>
-                <button class="tab-btn" onclick="showTab('searchTab', this)" id="tabSearch">2. البحث</button>
-                <button class="tab-btn" onclick="showTab('diag', this)" id="tab2">3. التشخيص</button>
-                <button class="tab-btn" onclick="showTab('fodTab', this)" id="tabFod">4. تدقيق FOD</button>
-                <button class="tab-btn" onclick="showTab('phmTab', this)" id="tabPhm">5. تنبؤ PHM</button>
-                <button class="tab-btn" onclick="showTab('crsTab', this)" id="tabCrs">6. بطاقات CRS</button>
-                <button class="tab-btn" onclick="showTab('hangar', this)" id="tab3">7. الحنقر</button>
+                <button class="tab-btn active" onclick="showTab('rag', this)" id="tab1">1. Manuals</button>
+                <button class="tab-btn" onclick="showTab('searchTab', this)" id="tabSearch">2. Search</button>
+                <button class="tab-btn" onclick="showTab('diag', this)" id="tab2">3. Diagnostics</button>
+                <button class="tab-btn" onclick="showTab('fodTab', this)" id="tabFod">4. FOD</button>
+                <button class="tab-btn" onclick="showTab('phmTab', this)" id="tabPhm">5. PHM</button>
+                <button class="tab-btn" onclick="showTab('crsTab', this)" id="tabCrs">6. CRS Task</button>
+                <button class="tab-btn" onclick="showTab('hangar', this)" id="tab3">7. Hangar</button>
                 <button class="tab-btn" onclick="showTab('training', this)" id="tab5">8. Part-66</button>
-                <button class="tab-btn" onclick="showTab('passport', this)" id="tab6">9. الجواز</button>
-                <button class="tab-btn" onclick="showTab('audit', this)" id="tab7">10. بلوكتشين</button>
+                <button class="tab-btn" onclick="showTab('passport', this)" id="tab6">9. Passport</button>
+                <button class="tab-btn" onclick="showTab('audit', this)" id="tab7">10. Blockchain</button>
             </div>
 
             <!-- TAB 1: RAG MANUALS UPLOAD -->
             <div id="rag" class="tab-content active">
                 <div class="card-box" style="border: 2px solid var(--green-accent);">
-                    <h3 style="color: var(--green-accent); margin-bottom: 10px;" id="ragTitle">⚠️ تنبيه تشغيلي إلزامي: مركز رفع كفايات الكتيبات (AMM / TSM)</h3>
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;" id="ragSub">وفقاً لمعايير الأمان المؤسسي، لن يتم السماح بالتشغيل أو التدقيق أو الفحص إلا بعد رفع ومعالجة كتيب الصيانة المعتمد.</p>
+                    <h3 style="color: var(--green-accent); margin-bottom: 10px;" id="ragTitle">⚠️ Mandatory Compliance Notice: AMM / TSM Manual Center</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;" id="ragSub">In compliance with strict aviation security standards, diagnostics, tool verification, and training modules remain locked until an approved AMM manual is uploaded and indexed.</p>
                     <form id="uploadForm">
                         <div class="field">
-                            <label id="lblAta">فصل الكتيب (ATA Chapter):</label>
+                            <label id="lblAta">ATA Chapter Reference:</label>
                             <input type="text" id="ataChapter" value="ATA 79 - Engine Oil System" required>
                         </div>
                         <div class="field">
-                            <label id="lblFile">ملف الكتيب (TXT / PDF):</label>
+                            <label id="lblFile">Manual Document (TXT / PDF):</label>
                             <input type="file" id="manualFile" required>
                         </div>
-                        <button type="submit" class="btn-action" style="background: linear-gradient(135deg, #00ff88, #009955); color: #000;" id="btnUpload">رفع وفهرسة الكتيب وإلغاء قفل النظام</button>
+                        <button type="submit" class="btn-action" style="background: linear-gradient(135deg, #00ff88, #009955); color: #000;" id="btnUpload">Upload, Index Manual & Unlock System</button>
                     </form>
                     <div id="uploadStatus" style="margin-top: 15px; font-weight: bold;"></div>
                 </div>
@@ -584,14 +598,14 @@ def serve_ui():
             <!-- TAB 2: MANUAL SEARCH ENGINE -->
             <div id="searchTab" class="tab-content">
                 <div class="card-box">
-                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">🔍 محرك البحث المتقدم داخل الكتيبات المرفوعة</h3>
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">أدخل الكلمة أو رقم العطل للبحث الفوري داخل النصوص المفهرسة للكتيب:</p>
+                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">🔍 Advanced Semantic Manual Search Engine</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Enter keywords or fault codes for instant retrieval within indexed manual chunks:</p>
                     <div class="grid-2">
                         <div class="field">
-                            <input type="text" id="searchQueryInput" placeholder="أدخل كلمة البحث (مثل: oil, pressure, valve)...">
+                            <input type="text" id="searchQueryInput" placeholder="Enter search keyword (e.g., oil, pressure, valve)...">
                         </div>
                         <div>
-                            <button class="btn-action" style="margin-top:0;" onclick="executeManualSearch()">تنفيذ البحث الذكي</button>
+                            <button class="btn-action" style="margin-top:0;" onclick="executeManualSearch()">Execute Smart Search</button>
                         </div>
                     </div>
                     <div id="searchResultsContainer" style="margin-top: 20px;"></div>
@@ -603,52 +617,52 @@ def serve_ui():
                 <form id="diagForm">
                     <div class="grid-2">
                         <div class="field">
-                            <label>رخصة المهندس (مُصادق عليها):</label>
+                            <label>Authorized Engineer License:</label>
                             <input type="text" id="license" readonly style="background: #040812; color: #00f0ff;">
                         </div>
                         <div class="field">
-                            <label>طراز المحرك (Type Rating):</label>
+                            <label>Engine Type Rating:</label>
                             <input type="text" id="engine" value="CFM56-5B" required>
                         </div>
                     </div>
                     <div class="grid-2">
                         <div class="field">
-                            <label>رمز العطل (ATA Fault Code):</label>
+                            <label>ATA Fault Code:</label>
                             <input type="text" id="fault" value="79-20-00" required>
                         </div>
                         <div class="field">
-                            <label>وضع التشغيل:</label>
+                            <label>Operation Mode:</label>
                             <select id="simMode">
-                                <option value="false">صيانة ميدانية خطية (Under Wing)</option>
-                                <option value="true">وضع المحاكاة الأكاديمي</option>
+                                <option value="false">Under-Wing Line Maintenance</option>
+                                <option value="true">Academic Simulation Mode</option>
                             </select>
                         </div>
                     </div>
                     <div class="field">
-                        <label>وصف العرض / الاستفسار الفني الميداني:</label>
+                        <label>Line Discrepancy / Technical Query Description:</label>
                         <textarea id="queryText" rows="3" required>High oil temperature observed on system during takeoff phase</textarea>
                     </div>
                     <div class="grid-2">
-                        <button type="submit" class="btn-action">تشغيل التحليل والأدوات</button>
-                        <button type="button" class="btn-action" style="background: linear-gradient(135deg, #00ff88, #009955); color: #000;" onclick="toggleARMode(true)">👓 تشغيل وضع نظارات الرؤية المعززة (AR Mode)</button>
+                        <button type="submit" class="btn-action">Run Diagnostic & Tool Lookup</button>
+                        <button type="button" class="btn-action" style="background: linear-gradient(135deg, #00ff88, #009955); color: #000;" onclick="toggleARMode(true)">👓 Launch AR Glasses HUD Mode</button>
                     </div>
                 </form>
 
                 <div id="diagResult" class="response-card">
                     <span id="badgeMode" class="badge"></span>
                     <div class="twin-box" id="twinBox">
-                        <h4 style="color: var(--cyan-glow); margin-bottom: 5px;">🔴 حالة التوأم الرقمي ثلاثي الأبعاد (3D Engine Twin)</h4>
+                        <h4 style="color: var(--cyan-glow); margin-bottom: 5px;">🔴 3D Engine Digital Twin Active Zone</h4>
                         <p id="twinZoneText" style="font-size: 13px; color: #fff;"></p>
                     </div>
-                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">إرشادات الصيانة المعتمدة (Zero-Hallucination):</h3>
+                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">Certified Maintenance Guidelines (Zero-Hallucination):</h3>
                     <p id="actionOutput" style="line-height: 1.6; margin-bottom: 10px;"></p>
                     <div class="card-box" style="margin-top: 10px; font-size: 13px;">
-                        <strong style="color: var(--cyan-glow);">🛠️ الأدوات والمعدات المطلوبة للصيانة (Required Tools & GSE):</strong>
+                        <strong style="color: var(--cyan-glow);">🛠️ Required Tools & Ground Support Equipment (GSE):</strong>
                         <ul id="toolsOut" style="margin: 8px 20px; color: #00ff88; line-height: 1.5;"></ul><br>
-                        <strong style="color: var(--green-accent);">📊 تحليل الحساسات التنبؤية (Predictive Telemetry):</strong> <span id="telemetryOut"></span><br><br>
-                        <strong style="color: var(--cyan-glow);">📦 حالة الـ MEL وقطع الغيار:</strong> <span id="melOut"></span><br><br>
-                        <strong style="color: var(--red-accent);">تحذير السلامة:</strong> <span id="warningOut"></span><br><br>
-                        <strong style="color: var(--text-muted);">بصمة البلوكتشين:</strong> <span id="hashOut" style="font-family: monospace; color: #00f0ff;"></span>
+                        <strong style="color: var(--green-accent);">📊 Predictive Telemetry Status:</strong> <span id="telemetryOut"></span><br><br>
+                        <strong style="color: var(--cyan-glow);">📦 MEL & Spare Parts Compliance:</strong> <span id="melOut"></span><br><br>
+                        <strong style="color: var(--red-accent);">Safety Warning:</strong> <span id="warningOut"></span><br><br>
+                        <strong style="color: var(--text-muted);">Cryptographic Audit Hash:</strong> <span id="hashOut" style="font-family: monospace; color: #00f0ff;"></span>
                     </div>
                 </div>
             </div>
@@ -656,34 +670,34 @@ def serve_ui():
             <!-- TAB 4: FOD PREVENTION CHECKLIST -->
             <div id="fodTab" class="tab-content">
                 <div class="card-box" style="border: 2px solid var(--green-accent);">
-                    <h3 style="color: var(--green-accent); margin-bottom: 10px;">🧹 نظام تدقيق منع مخلفات الأجسام الغريبة (FOD Prevention Tool-Tracker)</h3>
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">قائمة تحقق إلزامية للأدوات والمعدات قبل وبعد إغلاق محرك الطائرة تفادياً لترك أي قطعة داخل الضاغط.</p>
+                    <h3 style="color: var(--green-accent); margin-bottom: 10px;">🧹 Foreign Object Debris (FOD) Prevention Tool-Tracker</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Mandatory verification checklist for tools and hardware before and after closing engine cowl.</p>
                     <div style="background: #060c18; padding: 15px; border-radius: 8px; font-size: 14px; line-height: 2;">
-                        <label><input type="checkbox" id="fod1"> 1. عد وتدقيق مفاتيح العزم والعدد اليدوية (Tool Count Verification)</label><br>
-                        <label><input type="checkbox" id="fod2"> 2. فحص تجويف الضاغط ومجاري الدخول بصرياً (Borescope & Inlet Inspection)</label><br>
-                        <label><input type="checkbox" id="fod3"> 3. التأكد من إزالة جميع السدادات والشريط الواقي (Protective Caps Removal)</label><br>
-                        <label><input type="checkbox" id="fod4"> 4. توقيع مهندس الجودة واعتماد سجل FOD الميداني</label>
+                        <label><input type="checkbox" id="fod1"> 1. Complete hand tool count and torque wrench verification</label><br>
+                        <label><input type="checkbox" id="fod2"> 2. Perform visual borescope & core inlet debris check</label><br>
+                        <label><input type="checkbox" id="fod3"> 3. Verify removal of all protective port caps and blanking seals</label><br>
+                        <label><input type="checkbox" id="fod4"> 4. Quality inspector sign-off on field FOD ledger</label>
                     </div>
-                    <button class="btn-action" style="background: linear-gradient(135deg, #00ff88, #009955); color: #000;" onclick="alert('✅ تم اعتماد سجل تدقيق الـ FOD وتوثيقه بنجاح!')">اعتماد وإغلاق تدقيق الأدوات</button>
+                    <button class="btn-action" style="background: linear-gradient(135deg, #00ff88, #009955); color: #000;" onclick="showAppAlert('FOD audit ledger verified and certified successfully!', 'success')">Verify & Close FOD Audit</button>
                 </div>
             </div>
 
             <!-- TAB 5: PREDICTIVE HEALTH MONITORING (PHM) -->
             <div id="phmTab" class="tab-content">
                 <div class="card-box">
-                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">📈 وحدة الصيانة التنبؤية وتحليل التآكل (PHM & EGT Drift)</h3>
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">تحليل بيانات تسجيل الطيران (FDR) وحساب العمر الافتراضي للقطع بناءً على معايير Part-145.</p>
+                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">📈 Predictive Health Monitoring (PHM & EGT Drift Analysis)</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Analyze flight data records (FDR) and component life cycles per EASA Part-145 standards.</p>
                     <div class="grid-2">
                         <div class="field">
-                            <label>رفع ملف بيانات الطيران (Flight Log .csv / .dat):</label>
+                            <label>Upload Flight Log File (.csv / .dat):</label>
                             <input type="file" id="fdrFile">
                         </div>
                         <div class="field">
-                            <label>الساعات التشغيلية للمحرك (Flight Hours):</label>
+                            <label>Engine Operating Flight Hours:</label>
                             <input type="number" id="flightHours" value="3420">
                         </div>
                     </div>
-                    <button class="btn-action" onclick="runPHMAnalysis()">تحليل اتجاهات الحرارة والاهتزاز (PHM Diagnostics)</button>
+                    <button class="btn-action" onclick="runPHMAnalysis()">Run PHM Temperature & Vibration Diagnostics</button>
                     <div id="phmResult" style="margin-top: 15px; font-size: 13px; display: none;" class="card-box"></div>
                 </div>
             </div>
@@ -691,17 +705,17 @@ def serve_ui():
             <!-- TAB 6: DIGITAL TASK CARDS & CRS AUTHORIZATION -->
             <div id="crsTab" class="tab-content">
                 <div class="card-box" style="border: 2px solid var(--cyan-glow);">
-                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">📋 بطاقات المهام الرقمية ونموذج إطلاق الخدمة (Digital CRS & Task Cards)</h3>
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">إغلاق خطوات الصيانة وتوقيع شهادة إطلاق الطائرة للخدمة (Certificate of Release to Service).</p>
+                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">📋 Digital Task Cards & Certificate of Release to Service (CRS)</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Close maintenance actions and issue cryptographic CRS sign-off for aircraft return to service.</p>
                     <div class="field">
-                        <label>رقم أمر العمل (Work Order Number):</label>
+                        <label>Work Order Number:</label>
                         <input type="text" id="workOrderNo" value="WO-2026-9982">
                     </div>
                     <div class="field">
-                        <label>بيان العمل المنجز:</label>
-                        <textarea rows="2">Rectified High Oil Temperature per AMM Chapter 79, replaced O-Ring seal and performed ground run.</textarea>
+                        <label>Performed Maintenance Summary:</label>
+                        <textarea rows="2">Rectified High Oil Temperature per AMM Chapter 79, replaced O-Ring seal and performed successful ground run.</textarea>
                     </div>
-                    <button class="btn-action" style="background: linear-gradient(135deg, #00ff88, #009955); color: #000;" onclick="issueCRS()">توقيع وإصدار شهادة CRS المعمدة (Digital Signature)</button>
+                    <button class="btn-action" style="background: linear-gradient(135deg, #00ff88, #009955); color: #000;" onclick="issueCRS()">Sign & Issue Certified CRS (Cryptographic Signature)</button>
                     <div id="crsResult" style="margin-top: 15px; font-weight: bold; font-size: 13px;"></div>
                 </div>
             </div>
@@ -709,97 +723,85 @@ def serve_ui():
             <!-- TAB 7: HANGAR SIMULATION -->
             <div id="hangar" class="tab-content">
                 <div class="card-box">
-                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">🏭 بيئة محاكاة حنقر الصيانة الافتراضي (Virtual Hangar Simulator)</h3>
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">سيناريوهات طوارئ مع حظر زمني لاختبار المتدربين تحت الضغط.</p>
+                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">🏭 Virtual Hangar Maintenance Simulator</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Timed emergency training scenarios to evaluate line mechanics under high pressure.</p>
                     <div class="grid-2">
                         <div class="field">
-                            <label>اختر سيناريو المحاكاة الميدانية:</label>
+                            <label>Select Field Simulation Scenario:</label>
                             <select id="hangarScenario">
-                                <option value="oil_leak">سيناريو 1: تسرب زيت محرك CFM56 وإجراء التفتيش الحراري</option>
-                                <option value="hyd_pressure">سيناريو 2: انخفاض ضغط الهيدروليك وفحص المركم (Accumulator)</option>
-                                <option value="egt_spike">سيناريو 3: ارتفاع حرارة العادم المفاجئ EGT Spike واختبار FADEC</option>
+                                <option value="oil_leak">Scenario 1: CFM56 Oil Leak & Thermal Inspection</option>
+                                <option value="hyd_pressure">Scenario 2: Low Hydraulic Pressure & Accumulator Check</option>
+                                <option value="egt_spike">Scenario 3: EGT Spike Emergency & FADEC Reset</option>
                             </select>
                         </div>
                         <div class="field">
-                            <label>مستوى صعوبة التحدي:</label>
+                            <label>Challenge Difficulty Level:</label>
                             <select id="hangarDifficulty">
-                                <option value="standard">مستوى معتمد (Standard Line Training)</option>
-                                <option value="emergency">حالة طارئة حرجة (AOG Emergency Response - Timed)</option>
+                                <option value="standard">Standard Line Training</option>
+                                <option value="emergency">AOG Emergency Response (Timed)</option>
                             </select>
                         </div>
                     </div>
-                    <button class="btn-action" onclick="runHangarSimulation()">بدء سيناريو محاكاة الحنقر الميداني</button>
+                    <button class="btn-action" onclick="runHangarSimulation()">Launch Field Hangar Simulation Scenario</button>
                     <div id="hangarResult" class="response-card" style="display: none;"></div>
                 </div>
             </div>
 
             <!-- TAB 8: PART-66 TRAINING -->
             <div id="training" class="tab-content">
-                <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">🎓 أكاديمية تدريب وامتحانات الرخص الدولية (Part-66 Hub)</h3>
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">بنك الأسئلة الهندسي لتأهيل الخريجين واجتياز الامتحانات (يشترط رفع الكتيب).</p>
-                <div id="examContainer">جاري التحقق من حالة الكتيبات وبنك الأسئلة...</div>
+                <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">🎓 Part-66 International License Training Academy</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Engineering question bank for graduate qualification (Requires manual upload).</p>
+                <div id="examContainer">Verifying manual index and question bank status...</div>
             </div>
 
             <!-- TAB 9: DIGITAL PASSPORT -->
             <div id="passport" class="tab-content">
                 <div class="card-box">
-                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">🪪 جواز الكفاءة الرقمي للمهندس (Digital Competence Passport)</h3>
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">عرض صلاحيات وتصاريح طرازات المحركات المعتمدة رسمياً.</p>
-                    <button class="btn-action" style="max-width: 220px;" onclick="loadPassport()">استعلام عن الجواز الرقمي</button>
+                    <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">🪪 Engineer Digital Competence Passport</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Display official ratings, authorizations, and certified engine type privileges.</p>
+                    <button class="btn-action" style="max-width: 220px;" onclick="loadPassport()">Query Digital Passport</button>
                     <div id="passportResult" style="margin-top: 15px; font-size: 14px;"></div>
                 </div>
             </div>
 
             <!-- TAB 10: BLOCKCHAIN LOGBOOK -->
             <div id="audit" class="tab-content">
-                <h3 style="color: var(--cyan-glow); margin-bottom: 15px;">⛓️ سجل التدقيق المشفر (Blockchain-Backed Logbook)</h3>
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">سجلات الصيانة الموثقة ببصمات الكتل غير القابلة للتزوير.</p>
-                <div id="auditList" class="audit-list">جاري تحميل سجلات البلوكتشين...</div>
+                <h3 style="color: var(--cyan-glow); margin-bottom: 15px;">⛓️ Blockchain-Backed Immutable Audit Trail</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Cryptographically hashed maintenance logbook entries ensuring zero data tampering.</p>
+                <div id="auditList" class="audit-list">Loading blockchain audit ledger...</div>
             </div>
         </div>
 
         <script>
-            let currentLang = 'ar';
+            let currentLang = 'en';
+
+            function showAppAlert(message, type = 'error') {
+                const banner = document.getElementById('appNotification');
+                banner.className = type;
+                banner.innerText = message;
+                banner.style.display = 'block';
+                setTimeout(() => {
+                    banner.style.display = 'none';
+                }, 4000);
+            }
 
             function switchLanguage(lang) {
                 currentLang = lang;
                 const html = document.getElementById('htmlTag');
                 document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
                 
-                if(lang === 'en') {
-                    html.setAttribute('dir', 'ltr');
-                    html.setAttribute('lang', 'en');
-                    document.querySelectorAll('.lang-btn')[1].classList.add('active');
-                    document.querySelectorAll('.lang-btn')[3].classList.add('active');
-                    
-                    document.getElementById('gateSub').innerText = "Secure Gateway for Enterprise Aviation System (EASA / FAA / SCAA)";
-                    document.getElementById('lblLic').innerText = "Authorized Engineer License ID:";
-                    document.getElementById('lblFleet').innerText = "Fleet Authorization Code:";
-                    document.getElementById('gateBtn').innerText = "Authenticate & Access Digital Cockpit";
-                    
-                    document.getElementById('headSub').innerText = "Comprehensive: Manuals, Search, FOD Tracker, AR Glasses, PHM, & CRS Task Cards";
-                    document.getElementById('tab1').innerText = "1. Manuals";
-                    document.getElementById('tabSearch').innerText = "2. Search";
-                    document.getElementById('tab2').innerText = "3. Diagnostics";
-                    document.getElementById('tabFod').innerText = "4. FOD";
-                    document.getElementById('tabPhm').innerText = "5. PHM";
-                    document.getElementById('tabCrs').innerText = "6. CRS";
-                    document.getElementById('tab3').innerText = "7. Hangar";
-                    document.getElementById('tab5').innerText = "8. Part-66";
-                    document.getElementById('tab6').innerText = "9. Passport";
-                    document.getElementById('tab7').innerText = "10. Blockchain";
-                } else {
+                if(lang === 'ar') {
                     html.setAttribute('dir', 'rtl');
                     html.setAttribute('lang', 'ar');
-                    document.querySelectorAll('.lang-btn')[0].classList.add('active');
-                    document.querySelectorAll('.lang-btn')[2].classList.add('active');
+                    document.querySelectorAll('.lang-btn')[1].classList.add('active');
+                    document.querySelectorAll('.lang-btn')[3].classList.add('active');
                     
                     document.getElementById('gateSub').innerText = "بوابة الدخول الآمن للمنظومة العظمى المعتمدة (EASA / FAA / SCAA)";
                     document.getElementById('lblLic').innerText = "معرف رخصة المهندس المعتمد:";
                     document.getElementById('lblFleet').innerText = "رمز اعتماد الأسطول التشغيلي:";
                     document.getElementById('gateBtn').innerText = "مصادقة وفتح قمرة القيادة الرقمية";
                     
-                    document.getElementById('headSub').innerText = "شامل: كفايات الكتيبات، بحث ذكي، تتبع أدوات FOD، نظارات AR، صيانة تنبؤية PHM، وبطاقات مهام CRS";
+                    document.getElementById('headSub').innerText = "منظومة الصيانة الحرجة: الكتيبات، البحث الذكي، تدقيق FOD، نظارات AR، صيانة تنبؤية PHM، وبطاقات CRS";
                     document.getElementById('tab1').innerText = "1. الكتيبات";
                     document.getElementById('tabSearch').innerText = "2. البحث";
                     document.getElementById('tab2').innerText = "3. التشخيص";
@@ -810,7 +812,30 @@ def serve_ui():
                     document.getElementById('tab5').innerText = "8. Part-66";
                     document.getElementById('tab6').innerText = "9. الجواز";
                     document.getElementById('tab7').innerText = "10. بلوكتشين";
+                } else {
+                    html.setAttribute('dir', 'ltr');
+                    html.setAttribute('lang', 'en');
+                    document.querySelectorAll('.lang-btn')[0].classList.add('active');
+                    document.querySelectorAll('.lang-btn')[2].classList.add('active');
+                    
+                    document.getElementById('gateSub').innerText = "Secure authentication portal for certified aviation systems (EASA / FAA / SCAA)";
+                    document.getElementById('lblLic').innerText = "Authorized Engineer License ID:";
+                    document.getElementById('lblFleet').innerText = "Fleet Authorization Code:";
+                    document.getElementById('gateBtn').innerText = "Authenticate & Access Digital Cockpit";
+                    
+                    document.getElementById('headSub').innerText = "Mission-Critical Maintenance Ecosystem: AMM Manuals, Semantic Search, FOD Tracker, AR HUD, PHM, & Digital CRS";
+                    document.getElementById('tab1').innerText = "1. Manuals";
+                    document.getElementById('tabSearch').innerText = "2. Search";
+                    document.getElementById('tab2').innerText = "3. Diagnostics";
+                    document.getElementById('tabFod').innerText = "4. FOD";
+                    document.getElementById('tabPhm').innerText = "5. PHM";
+                    document.getElementById('tabCrs').innerText = "6. CRS Task";
+                    document.getElementById('tab3').innerText = "7. Hangar";
+                    document.getElementById('tab5').innerText = "8. Part-66";
+                    document.getElementById('tab6').innerText = "9. Passport";
+                    document.getElementById('tab7').innerText = "10. Blockchain";
                 }
+                showAppAlert("Language switched to " + lang.toUpperCase(), "success");
             }
 
             function toggleARMode(show) {
@@ -827,7 +852,7 @@ def serve_ui():
                 e.preventDefault();
                 const lic = document.getElementById('gateLicense').value;
                 if(!lic.startsWith('EASA-') && !lic.startsWith('FAA-') && !lic.startsWith('SCAA-')) {
-                    alert('رخصة غير صالحة تنظيمياً: يجب أن تبدأ بـ EASA-, FAA-, أو SCAA-');
+                    showAppAlert('Invalid license format: Must start with EASA-, FAA-, or SCAA-', 'error');
                     return;
                 }
                 document.getElementById('license').value = lic;
@@ -835,6 +860,7 @@ def serve_ui():
                 setTimeout(() => {
                     document.getElementById('landingGate').style.display = 'none';
                     document.getElementById('mainApp').style.display = 'block';
+                    showAppAlert('Authentication successful. Digital cockpit unlocked.', 'success');
                 }, 500);
             });
 
@@ -856,7 +882,7 @@ def serve_ui():
                 formData.append('ata_chapter', ata);
 
                 const statusDiv = document.getElementById('uploadStatus');
-                statusDiv.innerText = "جاري رفع وفهرسة الكتيب وإلغاء القفل الأمني...";
+                statusDiv.innerText = "Indexing manual and lifting security lock...";
 
                 const res = await fetch('/api/v1/manuals/upload', {
                     method: 'POST',
@@ -865,10 +891,12 @@ def serve_ui():
                 const data = await res.json();
                 if(res.ok) {
                     statusDiv.style.color = '#00ff88';
-                    statusDiv.innerText = `✅ تمت فهرسة الكتيب بنجاح (${data.filename})! تفعيل كافة الأقسام المتقدمة بنجاح.`;
+                    statusDiv.innerText = `Successfully indexed (${data.filename})! All system modules unlocked.`;
+                    showAppAlert('Manual indexed successfully! All systems active.', 'success');
                 } else {
                     statusDiv.style.color = '#ff2a5f';
-                    statusDiv.innerText = "❌ فشل الرفع: " + data.detail;
+                    statusDiv.innerText = "Upload failed: " + data.detail;
+                    showAppAlert('Upload failed: ' + data.detail, 'error');
                 }
             });
 
@@ -876,22 +904,22 @@ def serve_ui():
                 const query = document.getElementById('searchQueryInput').value;
                 const container = document.getElementById('searchResultsContainer');
                 if(!query || query.length < 2) {
-                    alert('الرجاء إدخال كلمة بحث صحيحة.');
+                    showAppAlert('Please enter at least 2 characters to search.', 'error');
                     return;
                 }
-                container.innerHTML = "<p style='color: var(--cyan-glow);'>جاري البحث في الكتيبات المفهرسة...</p>";
+                container.innerHTML = "<p style='color: var(--cyan-glow);'>Searching indexed manual database...</p>";
                 const res = await fetch(`/api/v1/manuals/search?q=${encodeURIComponent(query)}`);
                 const data = await res.json();
                 if(res.ok && data.results && data.results.length > 0) {
                     container.innerHTML = data.results.map(r => `
                         <div style="background: #060c18; border: 1px solid var(--border-neon); padding: 12px; border-radius: 6px; margin-bottom: 10px;">
-                            <span class="badge">${r.ata_chapter} | صفحة: ${r.page_number}</span>
-                            <p style="font-size: 13px; color: #fff; margin-top: 5px;"><strong>الملف:</strong> ${r.filename}</p>
+                            <span class="badge">${r.ata_chapter} | Page: ${r.page_number}</span>
+                            <p style="font-size: 13px; color: #fff; margin-top: 5px;"><strong>File:</strong> ${r.filename}</p>
                             <p style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">...${r.snippet}...</p>
                         </div>
                     `).join('');
                 } else {
-                    container.innerHTML = `<p style='color: var(--red-accent);'>❌ ${data.message || 'لم يتم العثور على نتائج.'}</p>`;
+                    container.innerHTML = `<p style='color: var(--red-accent);'>${data.message || 'No matching entries found.'}</p>`;
                 }
             }
 
@@ -900,20 +928,19 @@ def serve_ui():
                 const resultBox = document.getElementById('phmResult');
                 resultBox.style.display = 'block';
                 resultBox.innerHTML = `
-                    <h4 style="color: var(--green-accent); margin-bottom: 8px;">📊 تقرير الصيانة التنبؤية (PHM Engine Report)</h4>
-                    <p><strong>ساعات التشغيل الحالية:</strong> ${hours} ساعة</p>
-                    <p><strong>معدل انحراف درجة حرارة العادم (EGT Drift Rate):</strong> +1.4°C / 100 ساعة (معدل طبيعي آمن)</p>
-                    <p><strong>حالة اهتزاز الضاغط (Vibration Spectrum):</strong> مستقر (0.43 IPS)</p>
-                    <p style="color: var(--cyan-glow); margin-top: 8px;"><strong>التوصية التنظيمية:</strong> المكونات سليمة ولا تتطلب استبدالاً عاجلاً وفق معايير Part-145.</p>
+                    <h4 style="color: var(--green-accent); margin-bottom: 8px;">📊 PHM Engine Health Report</h4>
+                    <p><strong>Operating Flight Hours:</strong> ${hours} hrs</p>
+                    <p><strong>EGT Drift Rate:</strong> +1.4°C / 100 hrs (Normal Safe Threshold)</p>
+                    <p><strong>Compressor Vibration Spectrum:</strong> Stable (0.43 IPS)</p>
+                    <p style="color: var(--cyan-glow); margin-top: 8px;"><strong>Compliance Recommendation:</strong> Components operate within certified Part-145 limits. No immediate replacement required.</p>
                 `;
+                showAppAlert('PHM diagnostic analysis completed successfully.', 'success');
             }
 
             function issueCRS() {
                 const wo = document.getElementById('workOrderNo').value;
                 const lic = document.getElementById('license').value;
-                const resDiv = document.getElementById('crsResult');
-                resDiv.style.color = '#00ff88';
-                resDiv.innerText = `✅ تم إصدار شهادة إطلاق الخدمة (CRS) لأمر العمل (${wo}) بنجاح تام وتوقيعها برخصة المهندس (${lic}) بصمة مشفرة!`;
+                showAppAlert(`CRS Certificate for Work Order (${wo}) successfully issued & cryptographically signed by license (${lic})!`, 'success');
             }
 
             document.getElementById('diagForm').addEventListener('submit', async (e) => {
@@ -936,19 +963,20 @@ def serve_ui():
                 if(res.ok) {
                     const card = document.getElementById('diagResult');
                     document.getElementById('badgeMode').innerText = data.compliance_badge;
-                    document.getElementById('twinZoneText').innerText = "منطقة العطل النشطة على المجسم: " + data.digital_twin_zone;
+                    document.getElementById('twinZoneText').innerText = "Active Twin Zone: " + data.digital_twin_zone;
                     document.getElementById('actionOutput').innerHTML = data.action_step;
                     
                     const toolsList = document.getElementById('toolsOut');
                     toolsList.innerHTML = data.required_tools.map(t => `<li>${t}</li>`).join('');
 
                     document.getElementById('telemetryOut').innerText = data.predictive_telemetry;
-                    document.getElementById('melOut').innerText = `التصنيف: ${data.mel_compliance.category} | التفويض: ${data.mel_compliance.dispatch} | الفاصل الزمني: ${data.mel_compliance.interval} | القطعة المتوفرة: ${data.mel_compliance.part_no}`;
+                    document.getElementById('melOut').innerText = `Category: ${data.mel_compliance.category} | Dispatch: ${data.mel_compliance.dispatch} | Interval: ${data.mel_compliance.interval} | Part: ${data.mel_compliance.part_no}`;
                     document.getElementById('warningOut').innerText = data.safety_warning;
                     document.getElementById('hashOut').innerText = data.blockchain_hash;
                     card.style.display = 'block';
+                    showAppAlert('Diagnostic and tool lookup completed successfully.', 'success');
                 } else {
-                    alert('خطأ أمني تنظيمي: ' + data.detail);
+                    showAppAlert(data.detail, 'error');
                 }
             });
 
@@ -958,11 +986,12 @@ def serve_ui():
                 const resultCard = document.getElementById('hangarResult');
                 resultCard.style.display = 'block';
                 resultCard.innerHTML = `
-                    <span class="badge">وضع محاكاة الحنقر | الصعوبة: ${difficulty}</span>
-                    <h4 style="color: var(--cyan-glow); margin-bottom: 10px;">بدء محاكاة سيناريو الطوارئ النشط (${scenario})</h4>
-                    <p style="line-height: 1.6; margin-bottom: 10px;"><strong>الخطوات الميدانية الإلزامية:</strong><br>1. عزل النظام.<br>2. فحص العزم بالأدوات المعتمدة.<br>3. إغلاق بطاقة المهام.</p>
-                    <strong style="color: var(--red-accent);">تعليمات السلامة الحاسمة:</strong> ارتدِ معدات الوقاية الشخصية PPE بالكامل.
+                    <span class="badge">Hangar Simulator | Difficulty: ${difficulty}</span>
+                    <h4 style="color: var(--cyan-glow); margin-bottom: 10px;">Active Emergency Scenario: ${scenario}</h4>
+                    <p style="line-height: 1.6; margin-bottom: 10px;"><strong>Mandatory Line Steps:</strong><br>1. Isolate system.<br>2. Verify torque specs with calibrated tools.<br>3. Close task card.</p>
+                    <strong style="color: var(--red-accent);">Critical Safety Instruction:</strong> Wear full certified PPE at all times.
                 `;
+                showAppAlert('Hangar simulation scenario initiated.', 'success');
             }
 
             async function loadPassport() {
@@ -972,13 +1001,15 @@ def serve_ui():
                 const container = document.getElementById('passportResult');
                 if(res.ok) {
                     container.innerHTML = `<div style="background:#060c18; border:1px solid #00f0ff; padding:12px; border-radius:6px; margin-top:10px;">
-                        <strong>المهندس:</strong> ${data.name}<br>
-                        <strong>المستوى:</strong> ${data.level}<br>
-                        <strong>الطرازات المعتمدة:</strong> ${data.ratings}<br>
-                        <strong>تاريخ الإصدار:</strong> ${data.issued} | <span style="color:#00ff88;">${data.status}</span>
+                        <strong>Engineer:</strong> ${data.name}<br>
+                        <strong>Level:</strong> ${data.level}<br>
+                        <strong>Type Ratings:</strong> ${data.ratings}<br>
+                        <strong>Issued Date:</strong> ${data.issued} | <span style="color:#00ff88;">${data.status}</span>
                     </div>`;
+                    showAppAlert('Competence passport retrieved successfully.', 'success');
                 } else {
-                    container.innerText = "❌ " + data.detail;
+                    container.innerText = data.detail;
+                    showAppAlert(data.detail, 'error');
                 }
             }
 
@@ -986,7 +1017,7 @@ def serve_ui():
                 const res = await fetch('/api/v1/exams');
                 if(!res.ok) {
                     const errData = await res.json();
-                    document.getElementById('examContainer').innerHTML = `<div class="card-box" style="border-color: #ff2a5f; color: #ff2a5f;">❌ ${errData.detail}</div>`;
+                    document.getElementById('examContainer').innerHTML = `<div class="card-box" style="border-color: #ff2a5f; color: #ff2a5f;">${errData.detail}</div>`;
                     return;
                 }
                 const data = await res.json();
@@ -994,13 +1025,13 @@ def serve_ui():
                 container.innerHTML = data.map(ex => `
                     <div class="exam-box">
                         <span class="badge">${ex.module}</span>
-                        <h4 style="color: #fff; margin-bottom: 8px;">${ex.q_ar} <br><small style="color: var(--text-muted);">${ex.q_en}</small></h4>
+                        <h4 style="color: #fff; margin-bottom: 8px;">${ex.q_en}</h4>
                         <div style="margin: 10px 0; font-size: 14px;">
-                            <label style="display: inline-block; margin-left: 15px;"><input type="radio" name="q_${ex.id}" value="A"> A) ${ex.opt_a}</label>
-                            <label style="display: inline-block; margin-left: 15px;"><input type="radio" name="q_${ex.id}" value="B"> B) ${ex.opt_b}</label>
-                            <label style="display: inline-block;"><input type="radio" name="q_${ex.id}" value="C"> C) ${ex.opt_c}</label>
+                            <label style="display: block; margin-bottom: 6px;"><input type="radio" name="q_${ex.id}" value="A"> A) ${ex.opt_a}</label>
+                            <label style="display: block; margin-bottom: 6px;"><input type="radio" name="q_${ex.id}" value="B"> B) ${ex.opt_b}</label>
+                            <label style="display: block;"><input type="radio" name="q_${ex.id}" value="C"> C) ${ex.opt_c}</label>
                         </div>
-                        <button class="btn-action" style="padding: 8px; font-size: 12px; width: 150px;" onclick="checkAnswer(${ex.id}, '${ex.correct}', \`${ex.explanation}\`)">تحقق من الإجابة</button>
+                        <button class="btn-action" style="padding: 8px; font-size: 12px; width: 150px;" onclick="checkAnswer(${ex.id}, '${ex.correct}', \`${ex.explanation}\`)">Verify Answer</button>
                         <div id="result_${ex.id}" style="margin-top: 10px; font-weight: bold; font-size: 13px;"></div>
                     </div>
                 `).join('');
@@ -1010,16 +1041,17 @@ def serve_ui():
                 const selected = document.querySelector(`input[name="q_${id}"]:checked`);
                 const resDiv = document.getElementById(`result_${id}`);
                 if(!selected) {
-                    resDiv.style.color = '#ff2a5f';
-                    resDiv.innerText = "❌ الرجاء اختيار إجابة أولاً.";
+                    showAppAlert('Please select an option first.', 'error');
                     return;
                 }
                 if(selected.value === correctOpt) {
                     resDiv.style.color = '#00ff88';
-                    resDiv.innerText = `✅ إجابة صحيحة! ${explanation}`;
+                    resDiv.innerText = `Correct! Explanation: ${explanation}`;
+                    showAppAlert('Answer is correct!', 'success');
                 } else {
                     resDiv.style.color = '#ff2a5f';
-                    resDiv.innerText = `❌ إجابة خاطئة. الصحيحة هي (${correctOpt}). ${explanation}`;
+                    resDiv.innerText = `Incorrect. Correct option is (${correctOpt}). Explanation: ${explanation}`;
+                    showAppAlert('Incorrect answer.', 'error');
                 }
             }
 
@@ -1029,7 +1061,7 @@ def serve_ui():
                 const container = document.getElementById('auditList');
                 container.innerHTML = data.logs.map(l => `
                     <div class="audit-item">
-                        <span><strong>[${l.timestamp.split('T')[0]}]</strong> رخصة: ${l.license} | مرجع: ${l.reference}</span>
+                        <span><strong>[${l.timestamp.split('T')[0]}]</strong> License: ${l.license} | Ref: ${l.reference}</span>
                         <span style="color: var(--cyan-glow); font-family: monospace;">Hash: ${l.hash}</span>
                     </div>
                 `).join('');
@@ -1038,3 +1070,4 @@ def serve_ui():
     </body>
     </html>
     """
+

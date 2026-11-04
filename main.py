@@ -1,7 +1,7 @@
 """
-AeroSync AI - Mission-Critical Enterprise Aviation Core (v4.5.0)
-Standards Alignment: EASA Part-145, FAA A&P, SCAA Compliance
-Architecture: FastAPI + SQLite (WAL Mode) + Enterprise Avionics Gateway UI
+AeroSync AI - Mission-Critical Enterprise Aviation Core (v5.5.0)
+Standards Alignment: EASA Part-145, Part-66, FAA A&P, SCAA Compliance
+Architecture: FastAPI + SQLite (WAL Mode) + Professional PWA Manifest & Avionics UI
 """
 
 import os
@@ -9,13 +9,13 @@ import sqlite3
 import re
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field, validator
 
 app = FastAPI(
     title="AeroSync AI Enterprise Core",
-    description="Mission-Critical Aviation Diagnostic, RAG Manual Search & Immutable Audit System",
-    version="4.5.0"
+    description="Mission-Critical Aviation Diagnostic, Part-66 Training Hub & Enterprise PWA",
+    version="5.5.0"
 )
 
 AUDIT_DB = "aerosync_enterprise.db"
@@ -64,6 +64,19 @@ def init_db():
             ata_chapter TEXT NOT NULL
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS exam_questions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            module_no TEXT NOT NULL,
+            question_en TEXT NOT NULL,
+            question_ar TEXT NOT NULL,
+            option_a TEXT NOT NULL,
+            option_b TEXT NOT NULL,
+            option_c TEXT NOT NULL,
+            correct_option TEXT NOT NULL,
+            explanation TEXT NOT NULL
+        )
+    """)
     
     cursor.execute("SELECT COUNT(*) FROM glossary")
     if cursor.fetchone()[0] == 0:
@@ -78,6 +91,31 @@ def init_db():
         cursor.executemany(
             "INSERT INTO glossary (term, definition_en, definition_ar, ata_chapter) VALUES (?, ?, ?, ?)", terms
         )
+
+    cursor.execute("SELECT COUNT(*) FROM exam_questions")
+    if cursor.fetchone()[0] == 0:
+        questions = [
+            ("Module 03 - Electrical Fundamentals", 
+             "What is the primary unit of electrical capacitance?", 
+             "ما هي وحدة قياس السعة الكهربائية الأساسية؟", 
+             "Volt (فولت)", "Farad (فاراد)", "Ohm (أوم)", "B", 
+             "Farad is the SI unit of electrical capacitance, representing charge per unit potential difference."),
+            ("Module 15 - Gas Turbine Engine", 
+             "In which section of a gas turbine engine is the highest pressure reached?", 
+             "في أي قسم من توربينات الغاز يتم الوصول إلى أعلى ضغط؟", 
+             "Compressor Exit / Diffuser (مخرج ضاغط الهواء / الناشر)", "Turbine Inlet (مدخل التوربين)", "Exhaust Nozzle (فوهة العادم)", "A", 
+             "The compressor exit and diffuser section handles the compressed air right before the combustion chamber, yielding peak cycle pressure."),
+            ("Module 10 - Aviation Legislation", 
+             "Which organization is responsible for issuing EASA Part-145 maintenance organization approvals?", 
+             "ما هي الجهة المسؤولة عن إصدار اعتمادات منظمات الصيانة EASA Part-145؟", 
+             "FAA", "ICAO", "EASA", "C", 
+             "EASA (European Union Aviation Safety Agency) issues and oversees Part-145 approvals.")
+        ]
+        cursor.executemany("""
+            INSERT INTO exam_questions (module_no, question_en, question_ar, option_a, option_b, option_c, correct_option, explanation)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, questions)
+
     conn.commit()
     conn.close()
 
@@ -147,7 +185,7 @@ async def execute_diagnostic(payload: DiagnosticPayload):
         action_step = f"[إرشاد معتمد من الكتيب المرفق {rag_result['source']}]: {rag_result['content']}"
         ref_code = f"AMM-{rag_result['ata']}-P{rag_result['page']}"
         page_no = rag_result['page']
-        warning = "تحذير سلامة إلزامي: تأكد من عزل الطاقة الكهربائية بالكامل وتفعيل لوائح الأمان (Lockout/Tagout) قبل بدء الصيانة التحت-جناح."
+        warning = "تحذير سلامة إلزامي: تأكد من عزل الطاقة الكهربائية بالكامل وتفعيل لوائح الأمان (Lockout/Tagout) قبل بدء الصيانة."
     else:
         q = payload.spoken_query.lower()
         if "pressure" in q or "ضغط" in q or "leak" in q:
@@ -212,6 +250,18 @@ async def upload_manual_chunk(file: UploadFile = File(...), ata_chapter: str = F
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"فشل معالجة المستند: {str(e)}")
 
+@app.get("/api/v1/exams")
+async def get_exam_questions():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, module_no, question_en, question_ar, option_a, option_b, option_c, correct_option, explanation FROM exam_questions")
+    rows = cursor.fetchall()
+    conn.close()
+    return [{
+        "id": r[0], "module": r[1], "q_en": r[2], "q_ar": r[3],
+        "opt_a": r[4], "opt_b": r[5], "opt_c": r[6], "correct": r[7], "explanation": r[8]
+    } for r in rows]
+
 @app.get("/api/v1/audit-trail")
 async def get_audit_trail():
     conn = get_db()
@@ -230,9 +280,28 @@ async def get_glossary():
     conn.close()
     return [{"term": r[0], "def_en": r[1], "def_ar": r[2], "ata": r[3]} for r in rows]
 
+@app.get("/manifest.json")
+async def manifest():
+    return JSONResponse({
+        "name": "AeroSync AI Enterprise Core",
+        "short_name": "AeroSync",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#020617",
+        "theme_color": "#00f0ff",
+        "icons": [
+            {
+                "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='120' fill='%23050b18'/><circle cx='256' cy='256' r='180' fill='none' stroke='%2300f0ff' stroke-width='16'/><path d='M256 100 L320 280 L256 250 L192 280 Z' fill='%2300f0ff'/><circle cx='256' cy='256' r='40' fill='%23ff2a5f'/></svg>",
+                "sizes": "512x512",
+                "type": "image/svg+xml",
+                "purpose": "any maskable"
+            }
+        ]
+    })
+
 @app.get("/health")
 async def health_check():
-    return {"status": "online", "system": "AeroSync AI Mission-Critical Enterprise Core v4.5", "wal_db": "Active"}
+    return {"status": "online", "system": "AeroSync AI Mission-Critical Enterprise Core v5.5", "wal_db": "Active"}
 
 # --- 5. High-Performance AeroSpace HUD & Enterprise Gateway UI ---
 @app.get("/", response_class=HTMLResponse)
@@ -244,6 +313,8 @@ def serve_ui():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>AeroSync AI - Enterprise Fleet Hub</title>
+        <link rel="manifest" href="/manifest.json">
+        <meta name="theme-color" content="#00f0ff">
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
         <style>
             :root {
@@ -261,7 +332,6 @@ def serve_ui():
             * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', sans-serif; }
             body { background: var(--bg-deep); color: var(--text-main); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 15px; }
             
-            /* Landing Gate Overlay Screen */
             #landingGate {
                 position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                 background: radial-gradient(circle at center, #0a1931 0%, #020617 100%);
@@ -284,7 +354,7 @@ def serve_ui():
             .header p { color: var(--text-muted); font-size: 13px; margin-top: 5px; }
             
             .nav-tabs { display: flex; background: #040812; border-bottom: 1px solid var(--border-neon); overflow-x: auto; }
-            .tab-btn { flex: 1; min-width: 130px; padding: 15px 10px; background: transparent; border: none; color: var(--text-muted); font-weight: 700; cursor: pointer; transition: all 0.3s; text-align: center; }
+            .tab-btn { flex: 1; min-width: 110px; padding: 15px 10px; background: transparent; border: none; color: var(--text-muted); font-weight: 700; cursor: pointer; transition: all 0.3s; text-align: center; font-size: 13px; }
             .tab-btn.active { color: var(--cyan-glow); background: var(--bg-card); border-bottom: 3px solid var(--cyan-glow); }
             .tab-content { display: none; padding: 25px; }
             .tab-content.active { display: block; }
@@ -301,6 +371,7 @@ def serve_ui():
             .audit-list { margin-top: 20px; text-align: right; }
             .audit-item { background: #060c18; border: 1px solid var(--border-neon); padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; font-size: 12px; }
             .card-box { background: var(--bg-card); padding: 15px; border-radius: 8px; border: 1px solid var(--border-neon); margin-bottom: 15px; text-align: right; }
+            .exam-box { background: #060c18; border: 1px solid var(--border-neon); padding: 20px; border-radius: 10px; margin-bottom: 15px; text-align: right; }
         </style>
     </head>
     <body>
@@ -328,10 +399,11 @@ def serve_ui():
         <div class="app-wrapper" id="mainApp">
             <div class="header">
                 <h1>✈️ AeroSync <span>Enterprise HUD</span></h1>
-                <p>نظام التشخيص الهندسي المعتمد لقطاع صيانة الطائرات وإدارة الامتثال التنظيمي</p>
+                <p>نظام التشخيص الهندسي، تدريب الخريجين، وإدارة الامتثال التنظيمي الصارم</p>
             </div>
             <div class="nav-tabs">
                 <button class="tab-btn active" onclick="showTab('diag', this)">التشخيص الذكي</button>
+                <button class="tab-btn" onclick="showTab('training', this)">تدريب وامتحانات Part-66</button>
                 <button class="tab-btn" onclick="showTab('rag', this)">مركز الكتيبات (RAG)</button>
                 <button class="tab-btn" onclick="showTab('glossary', this)">قاموس الطيران</button>
                 <button class="tab-btn" onclick="showTab('audit', this)">سجل التدقيق (WAL)</button>
@@ -378,7 +450,14 @@ def serve_ui():
                 </div>
             </div>
 
-            <!-- TAB 2: RAG MANUALS -->
+            <!-- TAB 2: PART-66 TRAINING & EXAMS HUB -->
+            <div id="training" class="tab-content">
+                <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">🎓 أكاديمية تدريب خريجي هندسة الطيران وامتحانات الرخص (Part-66 / SCAA)</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">بنك الأسئلة المعتمد لاختبار وتأهيل المهندسين والفنيين وفق المعايير العالمية.</p>
+                <div id="examContainer">جاري تحميل بنك الأسئلة التفاعلي...</div>
+            </div>
+
+            <!-- TAB 3: RAG MANUALS -->
             <div id="rag" class="tab-content">
                 <div class="card-box">
                     <h3 style="color: var(--cyan-glow); margin-bottom: 10px;">📤 رفع وفهرسة كتيبات الصيانة (AMM / TSM)</h3>
@@ -398,13 +477,13 @@ def serve_ui():
                 </div>
             </div>
 
-            <!-- TAB 3: GLOSSARY -->
+            <!-- TAB 4: GLOSSARY -->
             <div id="glossary" class="tab-content">
                 <h3 style="color: var(--cyan-glow); margin-bottom: 15px;">القاموس التنظيمي الموحد لمصطلحات الطيران</h3>
                 <div id="glossaryContainer">جاري تحميل المصطلحات...</div>
             </div>
 
-            <!-- TAB 4: AUDIT LOGS -->
+            <!-- TAB 5: AUDIT LOGS -->
             <div id="audit" class="tab-content">
                 <h3 style="color: var(--cyan-glow); margin-bottom: 15px;">سجل التدقيق الرقمي غير القابل للتعديل (Immutable WAL)</h3>
                 <div id="auditList" class="audit-list">جاري تحميل سجلات التدقيق...</div>
@@ -412,7 +491,6 @@ def serve_ui():
         </div>
 
         <script>
-            // Landing Gate Authentication Handler
             document.getElementById('gateForm').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const lic = document.getElementById('gateLicense').value;
@@ -435,6 +513,7 @@ def serve_ui():
                 btn.classList.add('active');
                 if(tabId === 'audit') loadAuditLogs();
                 if(tabId === 'glossary') loadGlossary();
+                if(tabId === 'training') loadExams();
             }
 
             document.getElementById('diagForm').addEventListener('submit', async (e) => {
@@ -487,6 +566,42 @@ def serve_ui():
                     statusDiv.innerText = "❌ فشل الرفع: " + data.detail;
                 }
             });
+
+            async function loadExams() {
+                const res = await fetch('/api/v1/exams');
+                const data = await res.json();
+                const container = document.getElementById('examContainer');
+                container.innerHTML = data.map(ex => `
+                    <div class="exam-box">
+                        <span class="badge">${ex.module}</span>
+                        <h4 style="color: #fff; margin-bottom: 8px;">${ex.q_ar} <br><small style="color: var(--text-muted);">${ex.q_en}</small></h4>
+                        <div style="margin: 10px 0; font-size: 14px;">
+                            <label style="display: inline-block; margin-left: 15px;"><input type="radio" name="q_${ex.id}" value="A"> A) ${ex.opt_a}</label>
+                            <label style="display: inline-block; margin-left: 15px;"><input type="radio" name="q_${ex.id}" value="B"> B) ${ex.opt_b}</label>
+                            <label style="display: inline-block;"><input type="radio" name="q_${ex.id}" value="C"> C) ${ex.opt_c}</label>
+                        </div>
+                        <button class="btn-action" style="padding: 8px; font-size: 12px; width: 150px;" onclick="checkAnswer(${ex.id}, '${ex.correct}', \`${ex.explanation}\`)">تحقق من الإجابة</button>
+                        <div id="result_${ex.id}" style="margin-top: 10px; font-weight: bold; font-size: 13px;"></div>
+                    </div>
+                `).join('');
+            }
+
+            function checkAnswer(id, correctOpt, explanation) {
+                const selected = document.querySelector(`input[name="q_${id}"]:checked`);
+                const resDiv = document.getElementById(`result_${id}`);
+                if(!selected) {
+                    resDiv.style.color = '#ff2a5f';
+                    resDiv.innerText = "❌ الرجاء اختيار إجابة أولاً.";
+                    return;
+                }
+                if(selected.value === correctOpt) {
+                    resDiv.style.color = '#00ff88';
+                    resDiv.innerText = `✅ إجابة صحيحة تماماً! التوضيح التنظيمي: ${explanation}`;
+                } else {
+                    resDiv.style.color = '#ff2a5f';
+                    resDiv.innerText = `❌ إجابة خاطئة. الإجابة الصحيحة هي (${correctOpt}). ${explanation}`;
+                }
+            }
 
             async function loadAuditLogs() {
                 const res = await fetch('/api/v1/audit-trail');
